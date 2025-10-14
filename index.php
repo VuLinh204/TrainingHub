@@ -68,9 +68,19 @@ error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
 $routeKey = $_SERVER['REQUEST_METHOD'] . ' ' . $request;
 error_log("Looking for route: " . $routeKey);
 
+// Compute login URL for redirects
+$loginUrl = $baseDir . '/login';
+
 // API route handling for AJAX calls
 if (strpos($request, '/api/') === 0) {
     header('Content-Type: application/json');
+    
+    // Auth check for API (assuming all API endpoints require login)
+    if (!isset($_SESSION['employee_id'])) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Unauthorized']);
+        exit;
+    }
     
     // CSRF protection for API calls
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -99,7 +109,6 @@ $router = new Router();
 // Auth middleware for protected routes
 if (!in_array($request, ['/login']) && 
     !isset($_SESSION['employee_id'])) {
-    $loginUrl = $baseDir . '/login';
     error_log("Redirecting to login: " . $loginUrl);
     header('Location: ' . $loginUrl);
     exit;
@@ -115,6 +124,22 @@ try {
     // Log error with trace
     error_log("Error handling request: " . $e->getMessage());
     error_log("Stack trace: " . $e->getTraceAsString());
+    
+    // If not logged in, redirect to login (with special handling for /login)
+    if (!isset($_SESSION['employee_id'])) {
+        if ($request === '/login') {
+            // Assume login view path; adjust as needed
+            if (file_exists(BASE_PATH . '/views/login.php')) {
+                require_once BASE_PATH . '/views/login.php';
+            } else {
+                // Fallback: simple login prompt or redirect
+                header('Location: ' . $loginUrl);
+            }
+        } else {
+            header('Location: ' . $loginUrl);
+        }
+        exit;
+    }
     
     // Show error page in production, details in development
     if (getenv('APP_ENV') === 'production') {
@@ -209,6 +234,24 @@ class Router {
         
         // No route found
         error_log("No route found for: " . $method . ' ' . $request);
+        
+        // If not logged in, redirect to login (with special handling for /login)
+        if (!isset($_SESSION['employee_id'])) {
+            global $loginUrl; // Use the global loginUrl computed earlier
+            if ($request === '/login') {
+                // Assume login view path; adjust as needed
+                if (file_exists(BASE_PATH . '/views/login.php')) {
+                    require_once BASE_PATH . '/views/login.php';
+                } else {
+                    // Fallback: simple login prompt or redirect (avoid loop)
+                    echo '<h1>Please log in</h1><p><a href="' . $loginUrl . '">Login</a></p>';
+                }
+            } else {
+                header('Location: ' . $loginUrl);
+            }
+            return;
+        }
+        
         http_response_code(404);
         require BASE_PATH . '/views/error/404.php';
     }

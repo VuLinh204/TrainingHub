@@ -9,16 +9,14 @@ RewriteCond %{REQUEST_FILENAME} !-d
 # Otherwise, redirect all requests to index.php
 RewriteRule ^(.*)$ index.php [L,QSA]
 
-# Deny access to sensitive files
+# Deny access to sensitive files (dotfiles like .git)
 <FilesMatch "^\.">
-    Order allow,deny
-    Deny from all
+    Require all denied
 </FilesMatch>
 
 # Protect config files
 <FilesMatch "^(config\.php|composer\.json|package\.json|webpack\.config\.js)">
-    Order allow,deny
-    Deny from all
+    Require all denied
 </FilesMatch>
 
 # Security headers

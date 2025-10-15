@@ -1,7 +1,7 @@
-/**
- * Enhanced Training Platform JavaScript
- * Features: Video tracking, Exam handling, Notifications, PWA support
- */
+/*
+    Complete Training Platform JavaScript
+    Includes all event handlers and functionality
+*/
 
 (function () {
     'use strict';
@@ -10,581 +10,1188 @@
         heartbeatIntervalSec: 10,
         minWatchPercentToComplete: 0.9,
         allowedSeekSeconds: 5,
-        baseUrl: window.location.origin + (window.BASE_URL || ''),
-        endpoints: {
-            track: '/api/lesson/track',
-            complete: '/api/lesson/complete',
-            examStart: '/api/exam/start',
-            checkAnswer: '/api/exam/check-answer',
-            examSubmit: '/api/exam/submit'
-        }
+        apiBase: getApiBase(),
     };
 
-    // Utility functions
-    const $ = (selector, root = document) => root.querySelector(selector);
-    const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+    function getApiBase() {
+        const pathParts = window.location.pathname.split('/');
+        return pathParts.length > 1 && pathParts[1] ? '/' + pathParts[1] : '';
+    }
 
-    // Toast notification system
-    class ToastManager {
-        constructor() {
-            this.container = this.createContainer();
+    // State management
+    const state = {
+        currentExamId: null,
+        selectedAnswers: new Map(),
+        isSubmitting: false,
+        sidebarOpen: false,
+    };
+
+    // Utilities
+    function qs(selector, root = document) {
+        return root.querySelector(selector);
+    }
+
+    function qsa(selector, root = document) {
+        return Array.from(root.querySelectorAll(selector));
+    }
+
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `training-toast ${type}`;
+        toast.innerHTML = `
+            <i class="fas fa-${getToastIcon(type)}"></i>
+            <span>${escapeHtml(message)}</span>
+        `;
+        document.body.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            toast.classList.add('visible');
+        });
+
+        setTimeout(() => {
+            toast.classList.remove('visible');
+            setTimeout(() => toast.remove(), 300);
+        }, 3500);
+    }
+
+    function getToastIcon(type) {
+        const icons = {
+            success: 'check-circle',
+            error: 'exclamation-circle',
+            warning: 'exclamation-triangle',
+            info: 'info-circle',
+        };
+        return icons[type] || icons.info;
+    }
+
+    function showLoading() {
+        let loader = qs('.page-loader');
+        if (!loader) {
+            loader = document.createElement('div');
+            loader.className = 'page-loader';
+            loader.innerHTML = '<div class="loading-spinner"></div>';
+            document.body.appendChild(loader);
         }
+        loader.style.display = 'flex';
+    }
 
-        createContainer() {
-            let container = $('.toast-container');
-            if (!container) {
-                container = document.createElement('div');
-                container.className = 'toast-container';
-                document.body.appendChild(container);
-            }
-            return container;
-        }
-
-        show(message, type = 'info', duration = 3500) {
-            const toast = document.createElement('div');
-            toast.className = `training-toast ${type}`;
-            
-            const icon = {
-                success: 'fa-check-circle',
-                error: 'fa-exclamation-circle',
-                warning: 'fa-exclamation-triangle',
-                info: 'fa-info-circle'
-            }[type] || 'fa-info-circle';
-
-            toast.innerHTML = `
-                <i class="fas ${icon}"></i>
-                <span>${message}</span>
-            `;
-
-            this.container.appendChild(toast);
-            setTimeout(() => toast.classList.add('visible'), 10);
-            
-            setTimeout(() => {
-                toast.classList.remove('visible');
-                setTimeout(() => toast.remove(), 300);
-            }, duration);
+    function hideLoading() {
+        const loader = qs('.page-loader');
+        if (loader) {
+            loader.style.display = 'none';
         }
     }
 
-    const toast = new ToastManager();
+    async function apiRequest(url, options = {}) {
+        try {
+            const response = await fetch(CONFIG.apiBase + url, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...options.headers,
+                },
+            });
 
-    // Video tracking system
-    class VideoTracker {
-        constructor(videoElement) {
-            this.video = videoElement;
-            this.lessonId = videoElement.dataset.lessonId;
-            this.watched = 0;
-            this.lastTime = 0;
-            this.lastSavedTime = 0;
-            this.playing = false;
-            this.heartbeatTimer = null;
-            this.completed = false;
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
 
-            this.init();
+            const text = await response.text(); // đọc thô trước
+            console.log('[API RAW RESPONSE]', text);
+            return await response.json();
+        } catch (error) {
+            console.error('API request failed:', error);
+            throw error;
         }
+    }
 
-        init() {
-            this.video.addEventListener('play', () => this.onPlay());
-            this.video.addEventListener('pause', () => this.onPause());
-            this.video.addEventListener('timeupdate', () => this.onTimeUpdate());
-            this.video.addEventListener('seeking', () => this.onSeeking());
-            this.video.addEventListener('ended', () => this.onEnded());
-            
-            // Load saved progress
-            this.loadProgress();
-        }
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 
-        async loadProgress() {
-            try {
-                const response = await fetch(`${CONFIG.baseUrl}/api/subject/${this.lessonId}/progress`);
-                const data = await response.json();
-                if (data.watched_seconds) {
-                    this.video.currentTime = Math.min(data.watched_seconds, this.video.duration);
-                    this.watched = data.watched_seconds;
-                    this.lastSavedTime = data.watched_seconds;
+    /* ===================================
+       SIDEBAR TOGGLE
+    =================================== */
+    function initSidebarToggle() {
+        const menuToggle = qs('.menu-toggle');
+        const sidebar = qs('.sidebar');
+
+        if (!menuToggle || !sidebar) return;
+
+        menuToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            state.sidebarOpen = !state.sidebarOpen;
+            document.body.classList.toggle('sidebar-open', state.sidebarOpen);
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (state.sidebarOpen && !sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+                state.sidebarOpen = false;
+                document.body.classList.remove('sidebar-open');
+            }
+        });
+
+        // Close sidebar on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && state.sidebarOpen) {
+                state.sidebarOpen = false;
+                document.body.classList.remove('sidebar-open');
+            }
+        });
+
+        // Handle window resize
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (window.innerWidth > 1024) {
+                    state.sidebarOpen = false;
+                    document.body.classList.remove('sidebar-open');
                 }
-            } catch (e) {
-                console.warn('Could not load progress', e);
+            }, 250);
+        });
+    }
+
+    /* ===================================
+       DROPDOWN MENUS
+    =================================== */
+    function initDropdowns() {
+        qsa('.dropdown-toggle').forEach((toggle) => {
+            toggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const dropdown = toggle.closest('.dropdown');
+                const isActive = dropdown.classList.contains('active');
+
+                // Close all other dropdowns
+                qsa('.dropdown.active').forEach((d) => {
+                    if (d !== dropdown) {
+                        d.classList.remove('active');
+                    }
+                });
+
+                // Toggle current dropdown
+                dropdown.classList.toggle('active', !isActive);
+            });
+        });
+
+        // Close dropdowns on outside click
+        document.addEventListener('click', () => {
+            qsa('.dropdown.active').forEach((d) => d.classList.remove('active'));
+        });
+
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                qsa('.dropdown.active').forEach((d) => d.classList.remove('active'));
             }
-        }
+        });
+    }
 
-        onPlay() {
-            this.playing = true;
-            this.startHeartbeat();
-        }
+    /* ===================================
+       VIDEO TRACKING
+    =================================== */
+    function initVideoTracking() {
+        qsa('video.lesson-video').forEach(setupVideo);
 
-        onPause() {
-            this.playing = false;
-            this.stopHeartbeat();
-            this.sendHeartbeat('pause');
-        }
-
-        onTimeUpdate() {
-            const t = Math.floor(this.video.currentTime);
-            
-            // Accumulate watched time
-            if (t > this.lastTime && this.playing) {
-                this.watched += (t - this.lastTime);
-            }
-            this.lastTime = t;
-
-            // Anti-skip protection
-            if (this.video.currentTime - this.lastSavedTime > CONFIG.allowedSeekSeconds + 1) {
-                toast.show('Không được tua video quá nhanh!', 'warning');
-                this.video.currentTime = this.lastSavedTime + CONFIG.allowedSeekSeconds;
+        function setupVideo(video) {
+            const lessonId = video.dataset.lessonId;
+            if (!lessonId) {
+                console.warn('Video missing lesson-id');
                 return;
             }
 
-            // Update progress bar
-            this.updateProgressBar();
+            let watched = 0;
+            let lastTime = 0;
+            let lastSavedTime = 0;
+            let playing = false;
+            let heartbeatTimer = null;
+            let failedHeartbeats = 0;
 
-            // Check completion
-            if (!this.completed && this.video.duration && 
-                this.watched / this.video.duration >= CONFIG.minWatchPercentToComplete) {
-                this.markCompleted();
-            }
-        }
-
-        onSeeking() {
-            if (this.video.currentTime - this.lastSavedTime > CONFIG.allowedSeekSeconds) {
-                toast.show('Bạn cần xem video theo thứ tự', 'warning');
-                this.video.currentTime = Math.max(this.lastSavedTime, 0);
-            }
-        }
-
-        onEnded() {
-            this.watched = Math.max(this.watched, Math.floor(this.video.duration || 0));
-            this.sendHeartbeat('ended');
-            this.markCompleted();
-        }
-
-        updateProgressBar() {
-            const progressBar = $('.progress', this.video.closest('.video-container'));
-            if (progressBar && this.video.duration) {
-                const percent = Math.min(100, (this.watched / this.video.duration) * 100);
-                progressBar.style.width = `${percent}%`;
-            }
-        }
-
-        startHeartbeat() {
-            if (this.heartbeatTimer) return;
-            this.heartbeatTimer = setInterval(() => {
-                this.sendHeartbeat('heartbeat');
-            }, CONFIG.heartbeatIntervalSec * 1000);
-        }
-
-        stopHeartbeat() {
-            if (this.heartbeatTimer) {
-                clearInterval(this.heartbeatTimer);
-                this.heartbeatTimer = null;
-            }
-        }
-
-        async sendHeartbeat(eventName) {
-            this.lastSavedTime = Math.floor(this.video.currentTime || this.lastSavedTime);
-            
-            const payload = {
-                lesson_id: this.lessonId,
-                watched_seconds: this.watched,
-                current_time: this.lastSavedTime,
-                duration: Math.floor(this.video.duration || 0),
-                event: eventName
-            };
-
-            try {
-                await fetch(CONFIG.baseUrl + CONFIG.endpoints.track, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify(payload)
+            video.addEventListener('loadedmetadata', () => {
+                console.log('Video loaded:', {
+                    duration: video.duration,
+                    lessonId: lessonId,
                 });
-            } catch (e) {
-                console.warn('Heartbeat failed', e);
+            });
+
+            video.addEventListener('play', () => {
+                playing = true;
+                startHeartbeat();
+            });
+
+            video.addEventListener('pause', () => {
+                playing = false;
+                stopHeartbeat();
+                sendHeartbeat('pause');
+            });
+
+            video.addEventListener('timeupdate', () => {
+                const t = Math.floor(video.currentTime);
+                if (t > lastTime) {
+                    watched += t - lastTime;
+                }
+                lastTime = t;
+
+                // Anti-skip protection
+                const seekDiff = video.currentTime - lastSavedTime;
+                if (seekDiff > CONFIG.allowedSeekSeconds + 1) {
+                    showToast('Không thể tua quá ' + CONFIG.allowedSeekSeconds + ' giây', 'warning');
+                    video.currentTime = lastSavedTime + CONFIG.allowedSeekSeconds;
+                }
+
+                // Update progress bar
+                updateProgressBar(video, watched);
+
+                // Check completion
+                if (video.duration && watched / video.duration >= CONFIG.minWatchPercentToComplete) {
+                    markLessonCompleted(lessonId, video);
+                }
+            });
+
+            video.addEventListener('seeking', () => {
+                const seekDiff = video.currentTime - lastSavedTime;
+                if (seekDiff > CONFIG.allowedSeekSeconds) {
+                    video.currentTime = Math.max(lastSavedTime, 0);
+                }
+            });
+
+            video.addEventListener('ended', () => {
+                watched = Math.max(watched, Math.floor(video.duration || 0));
+                sendHeartbeat('ended');
+                markLessonCompleted(lessonId, video);
+            });
+
+            video.addEventListener('error', (e) => {
+                console.error('Video error:', e);
+                showToast('Lỗi tải video. Vui lòng thử lại.', 'error');
+            });
+
+            function startHeartbeat() {
+                if (heartbeatTimer) return;
+                heartbeatTimer = setInterval(() => {
+                    sendHeartbeat('heartbeat');
+                }, CONFIG.heartbeatIntervalSec * 1000);
             }
-        }
 
-        async markCompleted() {
-            if (this.completed) return;
-            this.completed = true;
+            function stopHeartbeat() {
+                if (heartbeatTimer) {
+                    clearInterval(heartbeatTimer);
+                    heartbeatTimer = null;
+                }
+            }
 
-            // Enable exam button if exists
-            const examBtn = $('.take-exam-btn', this.video.closest('[data-subject-id]'));
-            if (examBtn) {
-                examBtn.disabled = false;
-                examBtn.classList.remove('disabled');
-                examBtn.textContent = 'Làm bài kiểm tra';
-                toast.show('Đã hoàn thành video! Bạn có thể làm bài kiểm tra', 'success');
-            } else {
-                // No exam, mark as complete
+            async function sendHeartbeat(eventName) {
+                lastSavedTime = Math.floor(video.currentTime || lastSavedTime);
+                const payload = {
+                    lesson_id: lessonId,
+                    watched_seconds: watched,
+                    duration: Math.floor(video.duration || 0),
+                    current_time: lastSavedTime,
+                    event: eventName,
+                };
+
                 try {
-                    const response = await fetch(CONFIG.baseUrl + CONFIG.endpoints.complete, {
+                    await apiRequest('/api/lesson/track', {
                         method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({ lesson_id: this.lessonId })
+                        body: JSON.stringify(payload),
                     });
-                    const data = await response.json();
-                    if (data.status === 'completed') {
-                        toast.show('Chúc mừng! Bạn đã hoàn thành khóa học', 'success');
-                        setTimeout(() => window.location.reload(), 2000);
-                    }
+                    failedHeartbeats = 0;
                 } catch (e) {
-                    console.warn('Complete request failed', e);
+                    failedHeartbeats++;
+                    console.warn('Heartbeat failed', failedHeartbeats, e);
+
+                    if (failedHeartbeats >= 3) {
+                        showToast('Mất kết nối. Tiến độ có thể không được lưu.', 'warning');
+                    }
+                }
+            }
+
+            function updateProgressBar(video, watched) {
+                const progressBar = qs('.video-info .progress');
+                if (progressBar && video.duration) {
+                    const percent = Math.min(100, (watched / video.duration) * 100);
+                    progressBar.style.width = percent + '%';
                 }
             }
         }
     }
 
-    // Exam system
-    class ExamManager {
-        constructor(container) {
-            this.container = container;
-            this.examId = null;
-            this.questions = [];
-            this.answers = {};
-            this.timeLimit = 0;
-            this.startTime = null;
-            this.timerInterval = null;
+    /* ===================================
+       LESSON COMPLETION
+    =================================== */
+    async function markLessonCompleted(lessonId, videoEl) {
+        const container = videoEl.closest('[data-subject-id]') || document;
+        const btn = container.querySelector('.take-exam-btn, .complete-btn');
+
+        if (btn && btn.disabled) {
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+
+            if (btn.classList.contains('take-exam-btn')) {
+                btn.textContent = 'Làm bài kiểm tra';
+            } else {
+                btn.textContent = 'Đánh dấu hoàn thành';
+            }
+
+            showToast('Bạn đã xem đủ video để làm bài kiểm tra!', 'success');
+        }
+    }
+
+    async function completeLesson(lessonId) {
+        try {
+            showLoading();
+            const result = await apiRequest('/api/lesson/complete', {
+                method: 'POST',
+                body: JSON.stringify({ lesson_id: lessonId }),
+            });
+
+            hideLoading();
+
+            if (result.status === 'completed') {
+                showToast('Chúc mừng! Bạn đã hoàn thành khóa học.', 'success');
+                setTimeout(() => window.location.reload(), 2000);
+            }
+        } catch (e) {
+            hideLoading();
+            showToast('Không thể hoàn thành. Vui lòng thử lại.', 'error');
+        }
+    }
+
+    /* ===================================
+       MCQ HANDLING
+    =================================== */
+    function initMCQ() {
+        qsa('.mcq-answer').forEach((el) => {
+            el.addEventListener('click', onAnswerSelect);
+        });
+    }
+
+    async function onAnswerSelect(ev) {
+        const el = ev.currentTarget;
+        const answerId = el.dataset.answerId;
+        const questionId = el.dataset.questionId;
+
+        if (!answerId || !questionId) return;
+
+        // Prevent double-click
+        if (el.classList.contains('selected')) return;
+
+        // Clear previous selections for this question
+        qsa(`.mcq-answer[data-question-id="${questionId}"]`).forEach((a) => {
+            a.classList.remove('selected', 'correct', 'incorrect');
+        });
+
+        el.classList.add('selected');
+        state.selectedAnswers.set(questionId, answerId);
+
+        // Visual feedback
+        el.style.transform = 'scale(0.98)';
+        setTimeout(() => {
+            el.style.transform = '';
+        }, 150);
+
+        // Update submit button state
+        updateSubmitButton();
+    }
+
+    function updateSubmitButton() {
+        const submitBtn = qs('.exam-form button[type="submit"]');
+        const totalQuestions = qsa('.question').length;
+
+        if (submitBtn) {
+            const answered = state.selectedAnswers.size;
+            submitBtn.disabled = answered < totalQuestions;
+
+            if (answered < totalQuestions) {
+                submitBtn.textContent = `Đã trả lời ${answered}/${totalQuestions}`;
+                submitBtn.classList.add('disabled');
+            } else {
+                submitBtn.textContent = 'Nộp bài';
+                submitBtn.classList.remove('disabled');
+            }
+        }
+    }
+
+    /* ===================================
+       EXAM FLOW
+    =================================== */
+    function initExamHandlers() {
+        // Take exam button
+        qsa('.take-exam-btn').forEach((btn) => {
+            btn.addEventListener('click', handleExamStart);
+        });
+
+        // Complete lesson button
+        qsa('.complete-btn').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                const lessonId = e.currentTarget.dataset.subjectId;
+                if (lessonId && !e.currentTarget.disabled) {
+                    completeLesson(lessonId);
+                }
+            });
+        });
+    }
+
+    async function handleExamStart(ev) {
+        ev.preventDefault();
+        const btn = ev.currentTarget;
+        const subjectId = btn.dataset.subjectId;
+
+        if (!subjectId) {
+            showToast('Lỗi: Không tìm thấy thông tin khóa học', 'error');
+            return;
         }
 
-        async start(subjectId) {
-            try {
-                const response = await fetch(`${CONFIG.baseUrl}/exam/${subjectId}/start`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+        // Confirm before starting
+        if (!confirm('Bạn có chắc chắn muốn bắt đầu bài kiểm tra? Bạn sẽ không thể quay lại video sau khi bắt đầu.')) {
+            return;
+        }
+
+        try {
+            showLoading();
+            const result = await apiRequest(`/exam/${subjectId}/start`, {
+                method: 'POST',
+                body: JSON.stringify({ subject_id: subjectId }),
+            });
+
+            if (!result.success) {
+                throw new Error(result.error || 'Unknown error');
+            }
+
+            state.currentExamId = result.exam_id;
+            renderExam(result.questions, result.time_limit);
+            hideLoading();
+
+            // Hide video, show exam
+            const videoContainer = qs('.video-container');
+            const examContainer = qs('.exam-container');
+
+            if (videoContainer) videoContainer.style.display = 'none';
+            if (examContainer) {
+                examContainer.style.display = 'block';
+                examContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            // Start timer if time limit exists
+            if (result.time_limit) {
+                startExamTimer(result.time_limit);
+            }
+        } catch (e) {
+            hideLoading();
+            showToast('Không thể bắt đầu bài kiểm tra. ' + e.message, 'error');
+            console.error('Exam start error:', e);
+        }
+    }
+
+    function renderExam(questions, timeLimit) {
+        const examForm = qs('.exam-form');
+        if (!examForm) return;
+
+        examForm.setAttribute('data-exam-id', state.currentExamId);
+        examForm.innerHTML = '';
+
+        // Add timer if exists
+        let timerHTML = '';
+        if (timeLimit) {
+            timerHTML = `
+                <div class="exam-timer" data-time-limit="${timeLimit}">
+                    <i class="fas fa-clock"></i>
+                    <span class="timer-display">${timeLimit}:00</span>
+                </div>
+            `;
+        }
+
+        const questionsHTML = questions
+            .map(
+                (q, index) => `
+            <div class="question" data-question-id="${q.ID}">
+                <h3>Câu ${index + 1}: ${escapeHtml(q.QuestionText)}</h3>
+                <div class="answers">
+                    ${q.answers
+                        .map(
+                            (a) => `
+                        <div class="mcq-answer" 
+                             data-answer-id="${a.id}" 
+                             data-question-id="${q.ID}">
+                            <span class="answer-text">${escapeHtml(a.text)}</span>
+                        </div>
+                    `
+                        )
+                        .join('')}
+                </div>
+            </div>
+        `
+            )
+            .join('');
+
+        examForm.innerHTML = `
+            ${timerHTML}
+            <div class="exam-info">
+                <p>Tổng số câu hỏi: <strong>${questions.length}</strong></p>
+                <p>Hãy chọn câu trả lời đúng nhất cho mỗi câu hỏi.</p>
+            </div>
+            ${questionsHTML}
+            <div class="exam-actions">
+                <button type="submit" class="btn-primary" disabled>
+                    Đã trả lời 0/${questions.length}
+                </button>
+            </div>
+        `;
+
+        // Re-init MCQ handlers
+        initMCQ();
+
+        // Add submit handler
+        examForm.addEventListener('submit', handleExamSubmit);
+    }
+
+    function startExamTimer(minutes) {
+        const timerEl = qs('.timer-display');
+        if (!timerEl) return;
+
+        let timeRemaining = minutes * 60; // Convert to seconds
+
+        const timerInterval = setInterval(() => {
+            timeRemaining--;
+
+            const mins = Math.floor(timeRemaining / 60);
+            const secs = timeRemaining % 60;
+            timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+            // Warning at 5 minutes
+            if (timeRemaining === 300) {
+                showToast('Còn 5 phút!', 'warning');
+                timerEl.closest('.exam-timer').classList.add('warning');
+            }
+
+            // Warning at 1 minute
+            if (timeRemaining === 60) {
+                showToast('Còn 1 phút!', 'warning');
+                timerEl.closest('.exam-timer').classList.add('danger');
+            }
+
+            // Time's up
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                showToast('Hết giờ! Tự động nộp bài.', 'error');
+
+                // Auto submit
+                const examForm = qs('.exam-form');
+                if (examForm) {
+                    handleExamSubmit({ preventDefault: () => {}, currentTarget: examForm });
+                }
+            }
+        }, 1000);
+    }
+
+    async function handleExamSubmit(ev) {
+        ev.preventDefault();
+
+        if (state.isSubmitting) return;
+        state.isSubmitting = true;
+
+        const examForm = ev.currentTarget;
+        const examId = examForm.dataset.examId;
+        const subjectId = qs('[data-subject-id]')?.dataset.subjectId;
+
+        // Collect answers
+        const answers = Array.from(state.selectedAnswers.entries()).map(([qId, aId]) => ({
+            question_id: qId,
+            answer_id: aId,
+        }));
+
+        // Final confirmation
+        if (!confirm(`Bạn đã trả lời ${answers.length} câu hỏi. Bạn có chắc chắn muốn nộp bài?`)) {
+            state.isSubmitting = false;
+            return;
+        }
+
+        try {
+            showLoading();
+            const result = await apiRequest(`/exam/${subjectId}/submit`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    exam_id: examId,
+                    answers: answers,
+                }),
+            });
+
+            hideLoading();
+
+            if (!result.success) {
+                throw new Error(result.error || 'Submit failed');
+            }
+
+            showExamResult(result);
+        } catch (e) {
+            hideLoading();
+            showToast('Không thể nộp bài. ' + e.message, 'error');
+            console.error('Exam submit error:', e);
+        } finally {
+            state.isSubmitting = false;
+        }
+    }
+
+    function showExamResult(data) {
+        const passed = data && data.passed;
+        const score = data.correct_answers || 0;
+        const total = data.total_questions || 0;
+        const percentage = data.percentage || 0;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'exam-result-overlay';
+        overlay.innerHTML = `
+            <div class="exam-result-card ${passed ? 'passed' : 'failed'}">
+                <div class="result-icon">
+                    <i class="fas fa-${passed ? 'check-circle' : 'times-circle'}"></i>
+                </div>
+                <h2>${passed ? 'Chúc mừng bạn đã đạt!' : 'Chưa đạt yêu cầu'}</h2>
+                <p class="result-score">
+                    Điểm của bạn: <strong>${score}/${total}</strong>
+                    <span class="percentage">(${percentage}%)</span>
+                </p>
+                <p class="result-message">
+                    ${
+                        passed
+                            ? 'Bạn đã hoàn thành khóa học xuất sắc! Chứng chỉ của bạn đã sẵn sàng.'
+                            : 'Đừng nản lòng! Hãy xem lại bài giảng và thử lại. Bạn cần đạt tối thiểu ' + data.required + ' câu đúng.'
                     }
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    toast.show(error.error || 'Không thể bắt đầu bài kiểm tra', 'error');
-                    return;
-                }
-
-                const data = await response.json();
-                this.examId = data.exam_id;
-                this.questions = data.questions;
-                this.timeLimit = data.time_limit;
-                this.startTime = Date.now();
-
-                this.render();
-                this.startTimer();
-                toast.show('Bài kiểm tra đã bắt đầu. Chúc bạn may mắn!', 'info');
-            } catch (e) {
-                console.error('Exam start error:', e);
-                toast.show('Lỗi khi bắt đầu bài kiểm tra', 'error');
-            }
-        }
-
-        render() {
-            const examForm = $('.exam-form', this.container);
-            if (!examForm) return;
-
-            examForm.dataset.examId = this.examId;
-            examForm.innerHTML = `
-                <div class="exam-header">
-                    <h2>Bài kiểm tra (${this.questions.length} câu hỏi)</h2>
-                    <div class="exam-timer">
-                        <i class="fas fa-clock"></i>
-                        <span id="timer">${this.timeLimit}:00</span>
-                    </div>
+                </p>
+                <div class="exam-result-actions">
+                    ${
+                        passed
+                            ? '<button class="btn-primary btn-certificate"><i class="fas fa-certificate"></i> Nhận chứng chỉ</button>'
+                            : '<button class="btn-primary btn-retry"><i class="fas fa-redo"></i> Làm lại</button>'
+                    }
+                    <button class="btn-secondary btn-close">Đóng</button>
                 </div>
-                <div class="questions-container">
-                    ${this.questions.map((q, idx) => this.renderQuestion(q, idx)).join('')}
-                </div>
-                <div class="exam-actions">
-                    <button type="button" class="btn-primary" onclick="examManager.submit()">
-                        <i class="fas fa-paper-plane"></i> Nộp bài
-                    </button>
-                </div>
-            `;
+            </div>
+        `;
 
-            this.container.style.display = 'block';
-            this.attachEventListeners();
-            
-            // Scroll to exam
-            this.container.scrollIntoView({ behavior: 'smooth' });
-        }
+        document.body.appendChild(overlay);
 
-        renderQuestion(question, index) {
-            return `
-                <div class="question" data-question-id="${question.ID}">
-                    <h3>Câu ${index + 1}: ${question.QuestionText}</h3>
-                    <div class="answers">
-                        ${question.answers.map(ans => this.renderAnswer(ans, question.ID)).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        renderAnswer(answer, questionId) {
-            return `
-                <div class="mcq-answer" 
-                     data-answer-id="${answer.ID}" 
-                     data-question-id="${questionId}">
-                    ${answer.AnswerText}
-                </div>
-            `;
-        }
-
-        attachEventListeners() {
-            $$('.mcq-answer', this.container).forEach(el => {
-                el.addEventListener('click', (e) => this.selectAnswer(e.currentTarget));
-            });
-        }
-
-        selectAnswer(element) {
-            const questionId = element.dataset.questionId;
-            const answerId = element.dataset.answerId;
-
-            // Clear previous selection for this question
-            $$(`.mcq-answer[data-question-id="${questionId}"]`, this.container).forEach(el => {
-                el.classList.remove('selected');
-            });
-
-            // Select this answer
-            element.classList.add('selected');
-            this.answers[questionId] = answerId;
-        }
-
-        startTimer() {
-            const timerEl = $('#timer');
-            if (!timerEl) return;
-
-            this.timerInterval = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
-                const remaining = (this.timeLimit * 60) - elapsed;
-
-                if (remaining <= 0) {
-                    clearInterval(this.timerInterval);
-                    toast.show('Hết thời gian! Đang tự động nộp bài...', 'warning');
-                    this.submit();
-                    return;
-                }
-
-                const minutes = Math.floor(remaining / 60);
-                const seconds = remaining % 60;
-                timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-                // Warning when 5 minutes left
-                if (remaining === 300) {
-                    toast.show('Còn 5 phút!', 'warning');
-                }
-            }, 1000);
-        }
-
-        async submit() {
-            if (this.timerInterval) {
-                clearInterval(this.timerInterval);
-            }
-
-            // Validate all questions answered
-            const unanswered = this.questions.filter(q => !this.answers[q.ID]);
-            if (unanswered.length > 0) {
-                const confirm = window.confirm(
-                    `Bạn còn ${unanswered.length} câu chưa trả lời. Bạn có chắc muốn nộp bài?`
-                );
-                if (!confirm) return;
-            }
-
-            // Prepare submission
-            const submission = {
-                exam_id: this.examId,
-                answers: Object.entries(this.answers).map(([qId, aId]) => ({
-                    question_id: qId,
-                    answer_id: aId
-                }))
-            };
-
-            try {
-                const response = await fetch(`${CONFIG.baseUrl}${CONFIG.endpoints.examSubmit}`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify(submission)
-                });
-
-                if (!response.ok) {
-                    throw new Error('Submit failed');
-                }
-
-                const result = await response.json();
-                this.showResult(result);
-            } catch (e) {
-                console.error('Submit error:', e);
-                toast.show('Lỗi khi nộp bài. Vui lòng thử lại', 'error');
-            }
-        }
-
-        showResult(result) {
-            const overlay = document.createElement('div');
-            overlay.className = 'exam-result-overlay';
+        requestAnimationFrame(() => {
             overlay.style.opacity = '1';
-
-            const passed = result.passed;
-            const percentage = result.percentage || 0;
-
-            overlay.innerHTML = `
-                <div class="exam-result-card ${passed ? 'passed' : 'failed'}">
-                    <div class="result-icon">
-                        <i class="fas fa-${passed ? 'check-circle' : 'times-circle'}"></i>
-                    </div>
-                    <h2>${passed ? 'Chúc mừng!' : 'Chưa đạt'}</h2>
-                    <div class="result-score">
-                        <strong>${percentage.toFixed(1)}%</strong>
-                    </div>
-                    <div class="result-message">
-                        <p>Bạn đã trả lời đúng <strong>${result.correct_answers}/${result.total_questions}</strong> câu</p>
-                        <p>${result.message}</p>
-                    </div>
-                    <div class="exam-result-actions">
-                        ${passed 
-                            ? '<button class="btn-primary" onclick="window.location.reload()">Xem chứng chỉ</button>'
-                            : '<button class="btn-primary" onclick="window.location.reload()">Làm lại</button>'
-                        }
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(overlay);
-        }
-    }
-
-    // Global exam manager instance
-    window.examManager = null;
-
-    // Sidebar & Dropdown handling
-    class UIManager {
-        constructor() {
-            this.initSidebar();
-            this.initDropdowns();
-            this.initSearch();
-        }
-
-        initSidebar() {
-            const toggle = $('.menu-toggle');
-            if (toggle) {
-                toggle.addEventListener('click', () => {
-                    document.body.classList.toggle('sidebar-open');
-                });
-
-                // Close sidebar when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (document.body.classList.contains('sidebar-open') &&
-                        !e.target.closest('.sidebar') &&
-                        !e.target.closest('.menu-toggle')) {
-                        document.body.classList.remove('sidebar-open');
-                    }
-                });
-            }
-        }
-
-        initDropdowns() {
-            $$('.dropdown-toggle').forEach(toggle => {
-                toggle.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const dropdown = toggle.closest('.dropdown');
-                    
-                    // Close other dropdowns
-                    $$('.dropdown.active').forEach(d => {
-                        if (d !== dropdown) d.classList.remove('active');
-                    });
-                    
-                    dropdown.classList.toggle('active');
-                });
-            });
-
-            // Close dropdowns when clicking outside
-            document.addEventListener('click', () => {
-                $$('.dropdown.active').forEach(d => d.classList.remove('active'));
-            });
-        }
-
-        initSearch() {
-            const searchForm = $('.search-form');
-            if (searchForm) {
-                const input = $('input', searchForm);
-                input.addEventListener('keyup', (e) => {
-                    if (e.key === 'Escape') {
-                        input.value = '';
-                        input.blur();
-                    }
-                });
-            }
-        }
-    }
-
-    // Initialize everything
-    function init() {
-        // Video tracking
-        $$('video.lesson-video').forEach(video => {
-            new VideoTracker(video);
         });
 
-        // Exam button handlers
-        $$('.take-exam-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const subjectId = btn.dataset.subjectId || 
-                                 btn.closest('[data-subject-id]')?.dataset.subjectId;
-                if (!subjectId) return;
+        // Handle buttons
+        if (passed) {
+            const certBtn = qs('.btn-certificate', overlay);
+            certBtn.addEventListener('click', () => {
+                window.location.href = CONFIG.apiBase + '/certificates';
+            });
+        } else {
+            const retryBtn = qs('.btn-retry', overlay);
+            retryBtn.addEventListener('click', () => {
+                window.location.reload();
+            });
+        }
 
-                const examContainer = $('.exam-container');
-                if (examContainer) {
-                    window.examManager = new ExamManager(examContainer);
-                    window.examManager.start(subjectId);
-                    
-                    // Hide video container
-                    const videoContainer = $('.video-container');
-                    if (videoContainer) {
-                        videoContainer.style.display = 'none';
-                    }
+        const closeBtn = qs('.btn-close', overlay);
+        closeBtn.addEventListener('click', () => {
+            window.location.href = CONFIG.apiBase + '/dashboard';
+        });
+    }
+
+    /* ===================================
+       SEARCH FUNCTIONALITY
+    =================================== */
+    function initSearch() {
+        const searchForm = qs('.search-form');
+        const searchInput = qs('.search-form input');
+
+        if (!searchForm || !searchInput) return;
+
+        // Debounce search
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+
+            if (query.length < 2) return;
+
+            searchTimeout = setTimeout(() => {
+                performSearch(query);
+            }, 500);
+        });
+
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const query = searchInput.value.trim();
+            if (query) {
+                window.location.href = CONFIG.apiBase + '/search?q=' + encodeURIComponent(query);
+            }
+        });
+    }
+
+    async function performSearch(query) {
+        // Implement live search results if needed
+        console.log('Searching for:', query);
+    }
+
+    /* ===================================
+       FORM VALIDATION
+    =================================== */
+    function initFormValidation() {
+        qsa('form').forEach((form) => {
+            form.addEventListener('submit', (e) => {
+                const invalidInputs = qsa('input:invalid, textarea:invalid, select:invalid', form);
+
+                if (invalidInputs.length > 0) {
+                    e.preventDefault();
+                    invalidInputs[0].focus();
+                    showToast('Vui lòng điền đầy đủ thông tin bắt buộc', 'warning');
                 }
             });
         });
+
+        // Real-time validation feedback
+        qsa('input[required], textarea[required], select[required]').forEach((input) => {
+            input.addEventListener('blur', () => {
+                if (!input.validity.valid) {
+                    input.classList.add('error');
+                } else {
+                    input.classList.remove('error');
+                }
+            });
+
+            input.addEventListener('input', () => {
+                if (input.classList.contains('error') && input.validity.valid) {
+                    input.classList.remove('error');
+                }
+            });
+        });
+    }
+
+    /* ===================================
+       NOTIFICATIONS
+    =================================== */
+    function initNotifications() {
+        const notificationBtn = qs('.notifications .dropdown-toggle');
+
+        if (!notificationBtn) return;
+
+        // Load notifications on click
+        notificationBtn.addEventListener('click', async () => {
+            const dropdown = notificationBtn.closest('.dropdown');
+            const menu = qs('.dropdown-menu', dropdown);
+
+            if (!menu) return;
+
+            if (menu.children.length === 0) {
+                menu.innerHTML = '<div class="dropdown-loading">Đang tải...</div>';
+
+                try {
+                    const notifications = await apiRequest('/api/notifications');
+                    renderNotifications(menu, notifications);
+                } catch (e) {
+                    menu.innerHTML = '<div class="dropdown-error">Không thể tải thông báo</div>';
+                }
+            }
+        });
+    }
+
+    function renderNotifications(menu, notifications) {
+        if (!notifications || notifications.length === 0) {
+            menu.innerHTML = '<div class="dropdown-empty">Không có thông báo mới</div>';
+            return;
+        }
+
+        menu.innerHTML =
+            notifications
+                .map(
+                    (n) => `
+            <a href="${CONFIG.apiBase}${n.link}" class="notification-item ${n.read ? '' : 'unread'}">
+                <i class="fas fa-${n.icon}"></i>
+                <div class="notification-content">
+                    <div class="notification-title">${escapeHtml(n.title)}</div>
+                    <div class="notification-time">${n.time}</div>
+                </div>
+            </a>
+        `
+                )
+                .join('') +
+            '<a href="' +
+            CONFIG.apiBase +
+            '/notifications" class="view-all">Xem tất cả</a>';
+    }
+
+    /* ===================================
+       KEYBOARD SHORTCUTS
+    =================================== */
+    function initKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + K: Focus search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = qs('.search-form input');
+                if (searchInput) {
+                    searchInput.focus();
+                    searchInput.select();
+                }
+            }
+
+            // Escape: Close modals/dropdowns
+            if (e.key === 'Escape') {
+                qsa('.dropdown.active').forEach((d) => d.classList.remove('active'));
+                qsa('.modal.active').forEach((m) => m.classList.remove('active'));
+            }
+        });
+    }
+
+    /* ===================================
+       PROGRESS TRACKING
+    =================================== */
+    function initProgressTracking() {
+        updateProgressDisplay();
+
+        // Update every minute
+        setInterval(updateProgressDisplay, 60000);
+    }
+
+    function updateProgressDisplay() {
+        const progressBars = qsa('.progress-bar .progress');
+
+        progressBars.forEach((bar) => {
+            const targetWidth = bar.style.width;
+            if (targetWidth) {
+                animateProgress(bar, targetWidth);
+            }
+        });
+    }
+
+    function animateProgress(element, targetWidth) {
+        const target = parseFloat(targetWidth);
+        let current = 0;
+        const increment = target / 50;
+
+        const animation = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                element.style.width = target + '%';
+                clearInterval(animation);
+            } else {
+                element.style.width = current + '%';
+            }
+        }, 20);
+    }
+
+    /* ===================================
+       LAZY LOADING IMAGES
+    =================================== */
+    function initLazyLoading() {
+        if ('IntersectionObserver' in window) {
+            const imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        const src = img.dataset.src;
+
+                        if (src) {
+                            img.src = src;
+                            img.removeAttribute('data-src');
+                            observer.unobserve(img);
+                        }
+                    }
+                });
+            });
+
+            qsa('img[data-src]').forEach((img) => {
+                imageObserver.observe(img);
+            });
+        } else {
+            // Fallback for browsers without IntersectionObserver
+            qsa('img[data-src]').forEach((img) => {
+                img.src = img.dataset.src;
+                img.removeAttribute('data-src');
+            });
+        }
+    }
+
+    /* ===================================
+       SCROLL TO TOP BUTTON
+    =================================== */
+    function initScrollToTop() {
+        let scrollBtn = qs('.scroll-to-top');
+
+        if (!scrollBtn) {
+            scrollBtn = document.createElement('button');
+            scrollBtn.className = 'scroll-to-top';
+            scrollBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+            scrollBtn.setAttribute('aria-label', 'Scroll to top');
+            document.body.appendChild(scrollBtn);
+        }
+
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                scrollBtn.classList.add('visible');
+            } else {
+                scrollBtn.classList.remove('visible');
+            }
+        });
+
+        scrollBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth',
+            });
+        });
+    }
+
+    /* ===================================
+       COPY TO CLIPBOARD
+    =================================== */
+    function initCopyButtons() {
+        qsa('[data-copy]').forEach((btn) => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const textToCopy = btn.dataset.copy || btn.textContent;
+
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    showToast('Đã sao chép vào clipboard', 'success');
+
+                    // Visual feedback
+                    const originalHTML = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-check"></i> Đã sao chép';
+                    setTimeout(() => {
+                        btn.innerHTML = originalHTML;
+                    }, 2000);
+                } catch (e) {
+                    showToast('Không thể sao chép', 'error');
+                }
+            });
+        });
+    }
+
+    /* ===================================
+       CONFIRM DIALOGS
+    =================================== */
+    function initConfirmDialogs() {
+        qsa('[data-confirm]').forEach((element) => {
+            element.addEventListener('click', (e) => {
+                const message = element.dataset.confirm || 'Bạn có chắc chắn?';
+                if (!confirm(message)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+        });
+    }
+
+    /* ===================================
+       AUTO SAVE FORMS
+    =================================== */
+    function initAutoSave() {
+        qsa('form[data-autosave]').forEach((form) => {
+            const formId = form.dataset.autosave;
+
+            // Load saved data
+            loadFormData(form, formId);
+
+            // Save on change
+            let saveTimeout;
+            form.addEventListener('input', () => {
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    saveFormData(form, formId);
+                }, 1000);
+            });
+
+            // Clear on submit
+            form.addEventListener('submit', () => {
+                clearFormData(formId);
+            });
+        });
+    }
+
+    function saveFormData(form, formId) {
+        const formData = new FormData(form);
+        const data = {};
+
+        formData.forEach((value, key) => {
+            data[key] = value;
+        });
+
+        try {
+            sessionStorage.setItem('form_' + formId, JSON.stringify(data));
+            console.log('Form data saved:', formId);
+        } catch (e) {
+            console.warn('Could not save form data:', e);
+        }
+    }
+
+    function loadFormData(form, formId) {
+        try {
+            const saved = sessionStorage.getItem('form_' + formId);
+            if (!saved) return;
+
+            const data = JSON.parse(saved);
+
+            Object.keys(data).forEach((key) => {
+                const input = form.elements[key];
+                if (input) {
+                    input.value = data[key];
+                }
+            });
+
+            console.log('Form data loaded:', formId);
+        } catch (e) {
+            console.warn('Could not load form data:', e);
+        }
+    }
+
+    function clearFormData(formId) {
+        try {
+            sessionStorage.removeItem('form_' + formId);
+        } catch (e) {
+            console.warn('Could not clear form data:', e);
+        }
+    }
+
+    /* ===================================
+       TOOLTIP INITIALIZATION
+    =================================== */
+    function initTooltips() {
+        qsa('[data-tooltip]').forEach((element) => {
+            element.addEventListener('mouseenter', (e) => {
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+                tooltip.textContent = element.dataset.tooltip;
+                document.body.appendChild(tooltip);
+
+                const rect = element.getBoundingClientRect();
+                tooltip.style.top = rect.top - tooltip.offsetHeight - 8 + 'px';
+                tooltip.style.left = rect.left + (rect.width - tooltip.offsetWidth) / 2 + 'px';
+
+                element.addEventListener(
+                    'mouseleave',
+                    () => {
+                        tooltip.remove();
+                    },
+                    { once: true }
+                );
+            });
+        });
+    }
+
+    /* ===================================
+       OFFLINE DETECTION
+    =================================== */
+    function initOfflineDetection() {
+        window.addEventListener('online', () => {
+            showToast('Đã kết nối lại internet', 'success');
+        });
+
+        window.addEventListener('offline', () => {
+            showToast('Mất kết nối internet. Một số chức năng có thể không hoạt động.', 'warning');
+        });
+    }
+
+    /* ===================================
+       PWA INSTALL PROMPT
+    =================================== */
+    function initPWAInstall() {
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Show install button if exists
+            const installBtn = qs('.pwa-install-btn');
+            if (installBtn) {
+                installBtn.style.display = 'block';
+
+                installBtn.addEventListener('click', async () => {
+                    if (!deferredPrompt) return;
+
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+
+                    console.log(`User response to install prompt: ${outcome}`);
+                    deferredPrompt = null;
+                    installBtn.style.display = 'none';
+                });
+            }
+        });
+
+        window.addEventListener('appinstalled', () => {
+            showToast('Ứng dụng đã được cài đặt thành công!', 'success');
+            deferredPrompt = null;
+        });
+    }
+
+    /* ===================================
+       ERROR TRACKING
+    =================================== */
+    function initErrorTracking() {
+        window.addEventListener('error', (e) => {
+            console.error('Global error:', e.error);
+            // Send to error tracking service if needed
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('Unhandled promise rejection:', e.reason);
+            // Send to error tracking service if needed
+        });
+    }
+
+    /* ===================================
+       INITIALIZE ALL
+    =================================== */
+    function initAll() {
+        console.log('Initializing Training Platform...');
+
+        // Core functionality
+        initSidebarToggle();
+        initDropdowns();
+        initVideoTracking();
+        initExamHandlers();
+        initMCQ();
 
         // UI enhancements
-        new UIManager();
+        initSearch();
+        initFormValidation();
+        initNotifications();
+        initKeyboardShortcuts();
+        initProgressTracking();
+        initLazyLoading();
+        initScrollToTop();
+        initCopyButtons();
+        initConfirmDialogs();
+        initAutoSave();
+        initTooltips();
 
-        // Form validation
-        $$('form[data-validate]').forEach(form => {
-            form.addEventListener('submit', (e) => {
-                if (!validateForm(form)) {
-                    e.preventDefault();
-                }
-            });
-        });
+        // System features
+        initOfflineDetection();
+        initPWAInstall();
+        initErrorTracking();
+
+        console.log('Training Platform initialized successfully');
     }
 
-    // Form validation helper
-    function validateForm(form) {
-        let valid = true;
-        $$('input[required], textarea[required], select[required]', form).forEach(field => {
-            if (!field.value.trim()) {
-                field.classList.add('error');
-                valid = false;
-            } else {
-                field.classList.remove('error');
-            }
-        });
-        return valid;
-    }
-
-    // Auto-init on DOM ready
+    /* ===================================
+       AUTO INITIALIZE
+    =================================== */
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', initAll);
     } else {
-        init();
+        initAll();
     }
 
-    // Expose toast globally
-    window.showToast = (message, type) => toast.show(message, type);
-
+    // Expose some functions globally for external use
+    window.TrainingPlatform = {
+        showToast,
+        showLoading,
+        hideLoading,
+        apiRequest,
+    };
 })();

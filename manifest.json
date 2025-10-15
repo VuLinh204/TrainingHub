@@ -1,26 +1,110 @@
 {
-    "name": "Nền tảng Đào tạo",
-    "short_name": "Đào tạo",
-    "description": "Nền tảng đào tạo trực tuyến dành cho nhân viên, cung cấp video bài giảng và bài kiểm tra tương tác",
+    "name": "Training Platform - Nền tảng Đào tạo",
+    "short_name": "Training",
+    "description": "Nền tảng đào tạo trực tuyến dành cho nhân viên",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#2a73dd",
+    "orientation": "portrait-primary",
+    "scope": "/",
     "icons": [
         {
-            "src": "/assets/img/icon-192.png",
+            "src": "/assets/img/icon-1.svg",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/assets/img/icon-1.svg",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/assets/img/icon-1.svg",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/assets/img/icon-1.svg",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/assets/img/icon-1.svg",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/assets/img/icon-1.svg",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any maskable"
         },
         {
-            "src": "/assets/img/icon-512.png",
+            "src": "/assets/img/icon-1.svg",
+            "sizes": "384x384",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/assets/img/icon-1.svg",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any maskable"
         }
     ],
-    "lang": "vi-VN",
-    "dir": "ltr",
-    "orientation": "portrait"
+    "categories": ["education", "productivity"],
+    "screenshots": [
+        {
+            "src": "/assets/img/icon-1.svg",
+            "sizes": "540x720",
+            "type": "image/png"
+        },
+        {
+            "src": "/assets/img/icon-1.svg",
+            "sizes": "540x720",
+            "type": "image/png"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Khóa học của tôi",
+            "short_name": "Khóa học",
+            "description": "Xem danh sách khóa học được phân công",
+            "url": "/subjects",
+            "icons": [
+                {
+                    "src": "/assets/img/icon-1-svg",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "Chứng chỉ",
+            "short_name": "Chứng chỉ",
+            "description": "Xem chứng chỉ đã đạt được",
+            "url": "/certificates",
+            "icons": [
+                {
+                    "src": "/assets/img/icon-1-svg",
+                    "sizes": "96x96"
+                }
+            ]
+        }
+    ],
+    "share_target": {
+        "action": "/share",
+        "method": "POST",
+        "enctype": "multipart/form-data",
+        "params": {
+            "title": "title",
+            "text": "text",
+            "url": "url"
+        }
+    }
 }

@@ -1,5 +1,5 @@
 
 </main>
-    <script src="/assets/js/main.js"></script>
+    <script src="/Training/assets/js/main.js"></script>
 </body>
 </html>

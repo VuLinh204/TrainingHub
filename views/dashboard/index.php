@@ -10,7 +10,7 @@
             <div class="subject-card">
                 <?php if ($subject['VideoURL']): ?>
                     <div class="subject-thumbnail">
-                        <img src="<?= htmlspecialchars(str_replace('.mp4', '-thumb.jpg', $subject['VideoURL'])) ?>" alt="">
+                        <img src="<?= htmlspecialchars(str_replace('.mp4', '.png', $subject['VideoURL'])) ?>" alt="">
                         <span class="duration"><?= floor($subject['Duration'] / 60) ?>:<?= str_pad($subject['Duration'] % 60, 2, '0', STR_PAD_LEFT) ?></span>
                     </div>
                 <?php endif; ?>

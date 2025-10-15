@@ -21,6 +21,68 @@ class CompletionModel extends Model {
         return $this->insert($this->table, $data);
     }
 
+    /**
+     * Lấy các completion gần nhất của nhân viên
+     *
+     * @param int $limit Số lượng bản ghi cần lấy
+     * @param int $employeeId ID của nhân viên
+     * @return array
+     */
+    public function getRecentCompletions($employeeId, $limit = 5) {
+        $sql = "SELECT c.*, 
+                    s.Title AS SubjectName, 
+                    s.Duration,
+                    e.Score, 
+                    e.TotalQuestions, 
+                    e.Passed
+                FROM {$this->table} c
+                JOIN tblTrain_Subject s ON c.SubjectID = s.ID
+                LEFT JOIN tblTrain_Exam e ON c.ExamID = e.ID
+                WHERE c.EmployeeID = ?
+                ORDER BY c.CompletedAt DESC
+                LIMIT ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$employeeId, $limit]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getEmployeeCompletions($employeeId) {
+        $sql = "SELECT c.*, 
+                    s.Title AS SubjectName, 
+                    s.Duration,
+                    e.Score, 
+                    e.TotalQuestions, 
+                    e.Passed
+                FROM {$this->table} c
+                JOIN tblTrain_Subject s ON c.SubjectID = s.ID
+                LEFT JOIN tblTrain_Exam e ON c.ExamID = e.ID
+                WHERE c.EmployeeID = ?
+                ORDER BY c.CompletedAt DESC";
+        return $this->query($sql, [$employeeId]);
+    }
+
+    public function getEmployeeCompletionRate($employeeId) {
+        $sql = "SELECT 
+                    COUNT(*) as total_subjects,
+                    SUM(CASE WHEN Method IN ('video', 'exam', 'manual') THEN 1 ELSE 0 END) as completed_subjects
+                FROM {$this->table}
+                WHERE EmployeeID = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$employeeId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $total = $result['total_subjects'] ?? 0;
+        $completed = $result['completed_subjects'] ?? 0;
+
+        $completionRate = ($total > 0) ? ($completed / $total) * 100 : 0;
+
+        return [
+            'completion_rate' => $completionRate,
+            'total_completed' => $completed,
+            'total_assigned' => $total
+        ];
+    }
+
     public function getCompletion($employeeId, $subjectId) {
         $sql = "SELECT c.*, e.Title as ExamName, CONCAT(emp.FirstName, ' ', emp.LastName) as CompletedBy
                 FROM {$this->table} c
@@ -29,17 +91,6 @@ class CompletionModel extends Model {
                 WHERE c.EmployeeID = ? AND c.SubjectID = ?";
         $result = $this->query($sql, [$employeeId, $subjectId]);
         return $result ? $result[0] : null;
-    }
-
-    public function getEmployeeCompletions($employeeId) {
-        $sql = "SELECT c.*, s.Title as SubjectName, s.VideoLength,
-                e.Title as ExamName, e.TotalQuestions
-                FROM {$this->table} c
-                JOIN tbltrain_subject s ON c.SubjectID = s.ID
-                LEFT JOIN tbltrain_exam e ON c.ExamID = e.ID
-                WHERE c.EmployeeID = ?
-                ORDER BY c.CompletedAt DESC";
-        return $this->query($sql, [$employeeId]);
     }
 
     public function getSubjectCompletions($subjectId) {

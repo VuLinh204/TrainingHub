@@ -54,4 +54,48 @@ class SubjectModel extends Model {
         $stmt->execute([$employeeId, $employeeId, $employeeId, $subjectId]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
+
+    public function getExamQuestions($subjectId) {
+        $stmt = $this->db->prepare("
+            SELECT q.*, 
+                   GROUP_CONCAT(a.ID ORDER BY a.ID) as answer_ids,
+                   GROUP_CONCAT(a.AnswerText ORDER BY a.ID SEPARATOR '||') as answer_texts,
+                   GROUP_CONCAT(a.IsCorrect ORDER BY a.ID) as is_corrects
+            FROM " . TBL_QUESTION . " q
+            LEFT JOIN " . TBL_ANSWER . " a ON q.ID = a.QuestionID
+            WHERE q.SubjectID = ? AND q.Status = 1
+            GROUP BY q.ID
+            ORDER BY q.ID
+        ");
+        $stmt->execute([$subjectId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $questions = [];
+        foreach ($rows as $row) {
+            $answerIds = explode(',', $row['answer_ids']);
+            $answerTexts = explode('||', $row['answer_texts']);
+            $isCorrects = explode(',', $row['is_corrects']);
+
+            $answers = [];
+            foreach ($answerIds as $index => $answerId) {
+                if ($answerId) {
+                    $answers[] = [
+                        'ID' => $answerId,
+                        'AnswerText' => $answerTexts[$index],
+                        'IsCorrect' => (bool)$isCorrects[$index]
+                    ];
+                }
+            }
+
+            $questions[] = [
+                'ID' => $row['ID'],
+                'QuestionText' => $row['QuestionText'],
+                'QuestionType' => $row['QuestionType'],
+                'Score' => $row['Score'],
+                'answers' => $answers
+            ];
+        }
+
+        return $questions;
+    }
 }

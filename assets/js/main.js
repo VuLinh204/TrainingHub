@@ -93,14 +93,33 @@
                 },
             });
 
+            // Clone response để có thể đọc body nhiều lần nếu cần
+            const responseClone = response.clone();
+
             if (!response.ok) {
-                const errorText = await response.text();
+                const errorText = await responseClone.text();
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
 
-            const text = await response.text(); // đọc thô trước
+            // Log raw response nếu cần (sử dụng clone)
+            const text = await responseClone.text();
             console.log('[API RAW RESPONSE]', text);
-            return await response.json();
+
+            // Xử lý trường hợp response bị ghép hai JSON objects (ví dụ: {"status":"ok"}{"success":true})
+            let jsonStr = text.trim();
+            if (jsonStr.includes('}{')) {
+                // Lấy phần JSON cuối cùng
+                const parts = jsonStr.split('}{');
+                jsonStr = '{' + parts.pop();
+            }
+
+            // Kiểm tra nếu không phải JSON hợp lệ (ví dụ: HTML error)
+            if (!jsonStr.startsWith('{')) {
+                throw new Error(`Invalid JSON response: Response starts with "${jsonStr.substring(0, 50)}..."`);
+            }
+
+            // Parse JSON từ chuỗi đã xử lý
+            return JSON.parse(jsonStr);
         } catch (error) {
             console.error('API request failed:', error);
             throw error;
@@ -207,22 +226,26 @@
                 return;
             }
 
-            let watched = 0;
-            let lastTime = 0;
-            let lastSavedTime = 0;
+            let realWatched = 0; // Thời gian xem thực tế (play time)
+            let lastUpdateTime = Date.now(); // Timestamp cho delta time
+            let lastCurrentTime = 0; // Theo dõi currentTime để detect seek
             let playing = false;
             let heartbeatTimer = null;
             let failedHeartbeats = 0;
+            const maxDeltaPerUpdate = 2000; // Ngưỡng delta (ms) để detect seek (2s)
 
             video.addEventListener('loadedmetadata', () => {
                 console.log('Video loaded:', {
                     duration: video.duration,
                     lessonId: lessonId,
                 });
+                lastCurrentTime = video.currentTime;
+                lastUpdateTime = Date.now();
             });
 
             video.addEventListener('play', () => {
                 playing = true;
+                lastUpdateTime = Date.now(); // Reset timestamp khi play
                 startHeartbeat();
             });
 
@@ -230,42 +253,65 @@
                 playing = false;
                 stopHeartbeat();
                 sendHeartbeat('pause');
+                // Cộng delta cuối cùng khi pause
+                const delta = Date.now() - lastUpdateTime;
+                if (delta < maxDeltaPerUpdate) {
+                    realWatched += delta / 1000; // Chuyển sang giây
+                }
             });
 
             video.addEventListener('timeupdate', () => {
-                const t = Math.floor(video.currentTime);
-                if (t > lastTime) {
-                    watched += t - lastTime;
+                if (!playing) return;
+
+                const now = Date.now();
+                const deltaTime = now - lastUpdateTime; // Delta thời gian thực (ms)
+                const currentTime = video.currentTime * 1000; // currentTime sang ms
+                const timeDiff = currentTime - lastCurrentTime * 1000; // Diff vị trí video
+
+                // Detect seek: Nếu delta vị trí > delta thời gian thực + ngưỡng, coi như seek
+                if (timeDiff > deltaTime + maxDeltaPerUpdate) {
+                    console.log('Seek detected, ignoring jump');
+                    // Không cộng vào realWatched, chỉ reset lastCurrentTime
+                    lastCurrentTime = video.currentTime;
+                } else {
+                    // Bình thường: Cộng delta thời gian thực
+                    realWatched += deltaTime / 1000;
                 }
-                lastTime = t;
 
-                // Anti-skip protection
-                const seekDiff = video.currentTime - lastSavedTime;
-                if (seekDiff > CONFIG.allowedSeekSeconds + 1) {
-                    showToast('Không thể tua quá ' + CONFIG.allowedSeekSeconds + ' giây', 'warning');
-                    video.currentTime = lastSavedTime + CONFIG.allowedSeekSeconds;
-                }
+                lastUpdateTime = now;
+                lastCurrentTime = video.currentTime;
 
-                // Update progress bar
-                updateProgressBar(video, watched);
+                // Update progress bar dựa trên realWatched
+                updateProgressBar(video, realWatched);
 
-                // Check completion
-                if (video.duration && watched / video.duration >= CONFIG.minWatchPercentToComplete) {
+                // Check completion dựa trên realWatched
+                if (video.duration && realWatched >= CONFIG.minWatchPercentToComplete * video.duration) {
                     markLessonCompleted(lessonId, video);
                 }
             });
 
             video.addEventListener('seeking', () => {
-                const seekDiff = video.currentTime - lastSavedTime;
-                if (seekDiff > CONFIG.allowedSeekSeconds) {
-                    video.currentTime = Math.max(lastSavedTime, 0);
+                // Optional: Giới hạn seek nếu cần, nhưng không ảnh hưởng realWatched
+                console.log('Seeking to:', video.currentTime);
+            });
+
+            video.addEventListener('seeked', () => {
+                lastCurrentTime = video.currentTime; // Update sau seek hợp lệ
+                if (playing) {
+                    lastUpdateTime = Date.now(); // Reset timestamp
                 }
             });
 
             video.addEventListener('ended', () => {
-                watched = Math.max(watched, Math.floor(video.duration || 0));
+                playing = false;
+                // Cộng delta cuối
+                const delta = Date.now() - lastUpdateTime;
+                if (delta < maxDeltaPerUpdate) {
+                    realWatched += delta / 1000;
+                }
                 sendHeartbeat('ended');
                 markLessonCompleted(lessonId, video);
+                console.log('Total real watched time:', realWatched, 'seconds');
             });
 
             video.addEventListener('error', (e) => {
@@ -288,12 +334,11 @@
             }
 
             async function sendHeartbeat(eventName) {
-                lastSavedTime = Math.floor(video.currentTime || lastSavedTime);
                 const payload = {
                     lesson_id: lessonId,
-                    watched_seconds: watched,
+                    watched_seconds: Math.floor(realWatched), // Gửi realWatched lên server
                     duration: Math.floor(video.duration || 0),
-                    current_time: lastSavedTime,
+                    current_time: Math.floor(video.currentTime),
                     event: eventName,
                 };
 

@@ -10,7 +10,13 @@ class SubjectController extends Controller {
     public function __construct() {
         $this->subjectModel = new SubjectModel();
         $this->watchLogModel = new WatchLogModel();
-        $this->db = $GLOBALS['db']; // Ensure $this->db is set
+        // Use global db directly (assume it's set in bootstrap/index.php)
+        if (!isset($this->db)) {
+            $this->db = $GLOBALS['db'] ?? null;
+            if (!$this->db) {
+                throw new Exception('Database connection not initialized');
+            }
+        }
     }
 
     public function index() {
@@ -157,5 +163,11 @@ class SubjectController extends Controller {
             'progress' => $progress,
             'position' => $position['PositionName'] ?? 'Nhân viên'
         ];
+    }
+
+    public function getExamQuestions($id) {
+        $employeeId = $this->checkAuth();
+        $questions = $this->subjectModel->getExamQuestions($id);
+        return ['success' => true, 'questions' => $questions ?? []];
     }
 }

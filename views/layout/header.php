@@ -44,7 +44,7 @@
                     <div class="notifications dropdown">
                         <button class="dropdown-toggle" aria-label="Notifications">
                             <i class="fas fa-bell"></i>
-                            <?php if ($notificationCount ?? 0 > 0): ?>
+                            <?php if (($notificationCount ?? 0) > 0): ?>
                                 <span class="badge"><?= $notificationCount ?></span>
                             <?php endif; ?>
                         </button>

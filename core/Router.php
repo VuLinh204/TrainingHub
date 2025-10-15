@@ -18,15 +18,24 @@ class Router {
     }
     
     private function convertRouteToRegex($route) {
-        $pattern = preg_replace('/:[a-zA-Z]+/', '([^/]+)', $route);
-        return "#^" . $pattern . "$#";
+        // Sử dụng named groups để extract dễ dàng (e.g., :id → (?P<id>[^/]+))
+        $pattern = preg_replace_callback('/:([a-zA-Z0-9_]+)/', function($matches) {
+            return '(?P<' . $matches[1] . '>[^/]+)';
+        }, $route);
+        return '#^' . $pattern . '$#';
     }
     
     private function extractParams($route, $matches) {
         $params = [];
-        preg_match_all('/:([a-zA-Z]+)/', $route, $paramNames);
+        // Lấy tên params từ route pattern
+        preg_match_all('/:([a-zA-Z0-9_]+)/', $route, $paramNames);
+        // Sử dụng named groups từ $matches (không array_shift)
         foreach ($paramNames[1] as $index => $name) {
-            $params[$name] = $matches[$index + 1];
+            if (isset($matches[$name])) {  // Named key trực tiếp
+                $params[$name] = $matches[$name];
+            } elseif (isset($matches[$index + 1])) {  // Fallback index nếu không named
+                $params[$name] = $matches[$index + 1];
+            }
         }
         return $params;
     }
@@ -48,16 +57,36 @@ class Router {
             
             if (preg_match($routeRegex, $path, $matches)) {
                 error_log("Route matched: " . $routePattern);
-                array_shift($matches); // Remove full match
                 
+                // Không array_shift để giữ named groups
                 list($controllerName, $actionName) = explode('@', $handler);
-                $controller = new $controllerName();
+                $controllerClass = ucfirst($controllerName) . 'Controller';  // Fix ucfirst nếu cần
+                $controllerFile = BASE_PATH . '/controllers/' . $controllerClass . '.php';
+                
+                if (file_exists($controllerFile)) {
+                    require_once $controllerFile;
+                    $controller = new $controllerClass();
+                } else {
+                    error_log("Controller file not found: " . $controllerFile);
+                    continue;
+                }
                 
                 // Extract named parameters
                 $params = $this->extractParams($route, $matches);
                 error_log("Extracted params: " . print_r($params, true));
                 
-                return call_user_func_array([$controller, $actionName], $params);
+                // Truyền positional args (array_values để giữ thứ tự)
+                $callArgs = array_values($params);
+                $result = call_user_func_array([$controller, $actionName], $callArgs);
+                
+                // Nếu AJAX, tự động JSON response
+                if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                    header('Content-Type: application/json');
+                    echo json_encode($result ?? ['success' => true]);
+                    exit;
+                }
+                
+                return $result;  // Trả về cho view nếu cần
             }
         }
         

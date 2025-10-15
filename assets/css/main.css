@@ -81,47 +81,6 @@ body.with-sidebar {
     margin-bottom: 2rem;
 }
 
-.video-container {
-    margin-bottom: 30px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-.video-wrapper {
-    position: relative;
-    background: #000;
-}
-
-.video-wrapper video {
-    display: block;
-    width: 100%;
-}
-
-.video-info {
-    padding: 24px;
-    background: white;
-}
-
-.video-info h1 {
-    font-size: 24px;
-    margin: 0 0 16px;
-    color: #333;
-}
-
-.video-info .progress-bar {
-    height: 6px;
-    background: #e5e7eb;
-    border-radius: 3px;
-    margin: 16px 0;
-    overflow: hidden;
-}
-
-.video-info .progress-bar .progress {
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary-color), #1e40af);
-    border-radius: 3px;
-    transition: width 0.5s ease;
-}
-
 .take-exam-btn,
 .complete-btn {
     display: inline-flex;
@@ -427,17 +386,50 @@ body.with-sidebar {
     background: white;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+}
+
+.video-wrapper {
+    position: relative;
+    background: #000;
+}
+
+.video-wrapper video {
+    display: block;
+    width: 100%;
+}
+
+.video-info {
+    padding: 24px;
+    background: white;
+}
+
+.video-info h1 {
+    font-size: 24px;
+    margin: 0 0 16px;
+    color: #333;
+}
+
+.video-info .progress-bar {
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    margin: 16px 0;
+    overflow: hidden;
+}
+
+.video-info .progress-bar .progress {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), #1e40af);
+    border-radius: 3px;
+    transition: width 0.5s ease;
 }
 
 .lesson-video {
     width: 100%;
     aspect-ratio: 16/9;
     background: black;
-}
-
-.video-info {
-    padding: 20px;
 }
 
 .progress-bar {

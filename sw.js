@@ -1,6 +1,6 @@
 /**
- * Service Worker for Training Platform PWA
- * Place this file at the root: sw.js
+ * Service Worker cho Nền tảng Đào tạo PWA
+ * Đặt file này tại thư mục gốc: sw.js
  */
 
 const CACHE_NAME = 'training-platform-v1.0.0';
@@ -8,14 +8,13 @@ const OFFLINE_URL = '/offline.html';
 
 const STATIC_ASSETS = [
     '/',
-    '/assets/css/style.css',
-    '/assets/css/animations.css',
-    '/assets/js/main.js',
-    '/offline.html',
+    '/Training/assets/css/style.css',
+    '/Training/assets/css/animations.css',
+    '/Training/assets/js/main.js',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css',
 ];
 
-// Install event - cache static assets
+// Install event - cache static assets một cách an toàn
 self.addEventListener('install', (event) => {
     console.log('[ServiceWorker] Install');
     event.waitUntil(
@@ -23,7 +22,23 @@ self.addEventListener('install', (event) => {
             .open(CACHE_NAME)
             .then((cache) => {
                 console.log('[ServiceWorker] Caching static assets');
-                return cache.addAll(STATIC_ASSETS);
+                // Thêm từng asset một để xử lý lỗi partial response
+                return Promise.all(
+                    STATIC_ASSETS.map((url) => {
+                        return fetch(url)
+                            .then((response) => {
+                                // Bỏ qua nếu là partial response (206)
+                                if (response.ok && response.status !== 206) {
+                                    return cache.put(url, response);
+                                }
+                                return Promise.resolve(); // Bỏ qua asset này
+                            })
+                            .catch((error) => {
+                                console.warn('[ServiceWorker] Failed to cache', url, error);
+                                return Promise.resolve();
+                            });
+                    })
+                );
             })
             .then(() => {
                 return self.skipWaiting();
@@ -80,17 +95,26 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Không cache các request có Range header (thường cho video)
+    if (request.headers.has('range')) {
+        event.respondWith(fetch(request));
+        return;
+    }
+
     // Network first for HTML pages
     if (request.mode === 'navigate') {
         event.respondWith(
             fetch(request)
                 .then((response) => {
-                    // Cache successful responses
-                    if (response.ok) {
-                        const responseClone = response.clone();
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(request, responseClone);
-                        });
+                    // Cache successful full responses (skip partial content và media)
+                    if (response.ok && response.status !== 206) {
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.startsWith('video/')) {
+                            const responseClone = response.clone();
+                            caches.open(CACHE_NAME).then((cache) => {
+                                cache.put(request, responseClone);
+                            });
+                        }
                     }
                     return response;
                 })
@@ -114,12 +138,15 @@ self.addEventListener('fetch', (event) => {
                 }
 
                 return fetch(request).then((response) => {
-                    // Cache valid responses
-                    if (response.ok) {
-                        const responseClone = response.clone();
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(request, responseClone);
-                        });
+                    // Cache valid full responses (skip partial content và media)
+                    if (response.ok && response.status !== 206) {
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.startsWith('video/')) {
+                            const responseClone = response.clone();
+                            caches.open(CACHE_NAME).then((cache) => {
+                                cache.put(request, responseClone);
+                            });
+                        }
                     }
                     return response;
                 });
@@ -192,7 +219,18 @@ self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'CACHE_URLS') {
         event.waitUntil(
             caches.open(CACHE_NAME).then((cache) => {
-                return cache.addAll(event.data.urls);
+                return Promise.all(
+                    event.data.urls.map((url) => {
+                        return fetch(url)
+                            .then((response) => {
+                                if (response.ok && response.status !== 206) {
+                                    return cache.put(url, response);
+                                }
+                                return Promise.resolve();
+                            })
+                            .catch(() => Promise.resolve());
+                    })
+                );
             })
         );
     }

@@ -20,11 +20,14 @@ spl_autoload_register(function ($class) {
     
     foreach ($paths as $path) {
         $file = $path . $class . '.php';
+        error_log("Trying to load class: $class => $file");
         if (file_exists($file)) {
             require_once $file;
+            error_log("✅ Loaded $file");
             return;
         }
     }
+    error_log("❌ Class not found: $class");
 });
 
 // Session handling

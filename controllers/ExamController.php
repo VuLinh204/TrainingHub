@@ -93,7 +93,7 @@ class ExamController extends Controller {
         } catch (Exception $e) {
             error_log("Exam start error: " . $e->getMessage());
             http_response_code(500);
-            return $this->json(['error' => 'Không thể bắt đầu bài kiểm tra']);
+            return $this->json(['error' => 'Không thể bắt đầu bài kiểm tra: ' . $e->getMessage()]);
         }
     }
 
@@ -123,7 +123,7 @@ class ExamController extends Controller {
         } catch (Exception $e) {
             error_log("Check answer error: " . $e->getMessage());
             http_response_code(500);
-            return $this->json(['error' => 'Không thể kiểm tra câu trả lời']);
+            return $this->json(['error' => 'Không thể kiểm tra câu trả lời: ' . $e->getMessage()]);
         }
     }
 
@@ -185,7 +185,7 @@ class ExamController extends Controller {
             error_log("Exam submit error: " . $e->getMessage());
             http_response_code(500);
             return $this->json([
-                'error' => 'Không thể nộp bài thi',
+                'error' => 'Không thể nộp bài thi: ' . $e->getMessage(),
                 'details' => $e->getMessage()
             ]);
         }

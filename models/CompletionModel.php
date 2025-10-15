@@ -1,6 +1,6 @@
 <?php
 class CompletionModel extends Model {
-    protected $table = 'tbltrain_completion';
+    protected $table = 'tblTrain_Completion';  // Standardized table name casing
 
     public function markComplete($employeeId, $subjectId, $method = 'video', $score = null, $examId = null) {
         $data = [
@@ -84,10 +84,12 @@ class CompletionModel extends Model {
     }
 
     public function getCompletion($employeeId, $subjectId) {
-        $sql = "SELECT c.*, e.Title as ExamName, CONCAT(emp.FirstName, ' ', emp.LastName) as CompletedBy
+        // FIXED: Added JOIN to tblTrain_Subject for Title (ExamName), and standardized table names
+        $sql = "SELECT c.*, s.Title as ExamName, CONCAT(emp.FirstName, ' ', emp.LastName) as CompletedBy
                 FROM {$this->table} c
-                LEFT JOIN tbltrain_exam e ON c.ExamID = e.ID 
-                LEFT JOIN tbltrain_employee emp ON c.CreatedBy = emp.ID
+                LEFT JOIN tblTrain_Exam e ON c.ExamID = e.ID 
+                LEFT JOIN tblTrain_Subject s ON e.SubjectID = s.ID  -- ← FIX: JOIN Subject for Title
+                LEFT JOIN tblTrain_Employee emp ON c.CreatedBy = emp.ID
                 WHERE c.EmployeeID = ? AND c.SubjectID = ?";
         $result = $this->query($sql, [$employeeId, $subjectId]);
         return $result ? $result[0] : null;
@@ -98,7 +100,7 @@ class CompletionModel extends Model {
                 CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
                 emp.Department
                 FROM {$this->table} c
-                JOIN tbltrain_employee emp ON c.EmployeeID = emp.ID
+                JOIN tblTrain_Employee emp ON c.EmployeeID = emp.ID
                 WHERE c.SubjectID = ?
                 ORDER BY c.CompletedAt DESC";
         return $this->query($sql, [$subjectId]);

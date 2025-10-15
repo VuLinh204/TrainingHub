@@ -2,14 +2,19 @@
     <?php 
     $progress = $sidebarData['progress'] ?? ['total_subjects' => 0, 'completed_subjects' => 0, 'total_certificates' => 0];
     $position = $sidebarData['position'] ?? 'Nhân viên';
+    
+    // FIX: Tính progress percentage an toàn (tránh chia 0)
+    $progressPercent = ($progress['total_subjects'] > 0) 
+        ? floor(($progress['completed_subjects'] / $progress['total_subjects']) * 100) 
+        : 0;
     ?>
     <div class="sidebar-header">
         <div class="user-info">
             <div class="avatar">
-                <?= !empty($_SESSION['employee_name']) ? strtoupper(substr($_SESSION['employee_name'], 0, 1)) : '?' ?>
+                <?= !empty($employee['FirstName']) ? strtoupper(substr($employee['FirstName'], 0, 1)) : '?' ?>
             </div>
             <div class="user-details">
-                <div class="user-name"><?= htmlspecialchars($_SESSION['employee_name'] ?? 'Unknown User') ?></div>
+                <div class="user-name"><?= htmlspecialchars($employee['FirstName'] ?? 'Unknown User') ?></div>
                 <div class="user-position"><?= htmlspecialchars($position) ?></div>
             </div>
         </div>
@@ -26,7 +31,7 @@
             <span>Khóa học</span>
             <?php if ($progress['total_subjects'] > 0): ?>
                 <div class="progress-badge">
-                    <?= floor(($progress['completed_subjects'] / $progress['total_subjects']) * 100) ?>%
+                    <?= $progressPercent ?>%
                 </div>
             <?php endif; ?>
         </a>
@@ -49,10 +54,7 @@
         <div class="progress-summary">
             <div class="progress-title">Tiến độ học tập</div>
             <div class="progress-bar">
-                <div class="progress" style="width: <?= $progress['total_subjects'] > 0 
-                    ? floor(($progress['completed_subjects'] / $progress['total_subjects']) * 100) 
-                    : 0 ?>%">
-                </div>
+                <div class="progress" style="width: <?= $progressPercent ?>%"></div>
             </div>
             <div class="progress-stats">
                 <?= $progress['completed_subjects'] ?>/<?= $progress['total_subjects'] ?> khóa học

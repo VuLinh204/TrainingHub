@@ -409,12 +409,22 @@
         }
     }
 
-    /* ===================================
+    /* ===================================   
        MCQ HANDLING
     =================================== */
     function initMCQ() {
-        qsa('.mcq-answer').forEach((el) => {
+        qsa('.answer-option').forEach((el) => {
             el.addEventListener('click', onAnswerSelect);
+        });
+
+        qsa('.exam-form input[type="radio"]').forEach((radio) => {
+            radio.addEventListener('change', (ev) => {
+                const label = ev.target.closest('.answer-option');
+                if (label) {
+                    // Trigger onAnswerSelect từ label
+                    onAnswerSelect({ currentTarget: label, preventDefault: () => {} });
+                }
+            });
         });
     }
 
@@ -429,7 +439,8 @@
         if (el.classList.contains('selected')) return;
 
         // Clear previous selections for this question
-        qsa(`.mcq-answer[data-question-id="${questionId}"]`).forEach((a) => {
+        // SỬA: Selector match template
+        qsa(`.answer-option[data-question-id="${questionId}"]`).forEach((a) => {
             a.classList.remove('selected', 'correct', 'incorrect');
         });
 
@@ -448,7 +459,8 @@
 
     function updateSubmitButton() {
         const submitBtn = qs('.exam-form button[type="submit"]');
-        const totalQuestions = qsa('.question').length;
+        // SỬA: Selector từ '.question' → '.question-card' (match template)
+        const totalQuestions = qsa('.question-card').length;
 
         if (submitBtn) {
             const answered = state.selectedAnswers.size;
@@ -468,9 +480,9 @@
        EXAM FLOW
     =================================== */
     function initExamHandlers() {
-        // Take exam button
+        // Replace handler
         qsa('.take-exam-btn').forEach((btn) => {
-            btn.addEventListener('click', handleExamStart);
+            btn.addEventListener('click', handleExamStartOverride);
         });
 
         // Complete lesson button
@@ -484,7 +496,7 @@
         });
     }
 
-    async function handleExamStart(ev) {
+    async function handleExamStartOverride(ev) {
         ev.preventDefault();
         const btn = ev.currentTarget;
         const subjectId = btn.dataset.subjectId;
@@ -494,7 +506,6 @@
             return;
         }
 
-        // Confirm before starting
         if (!confirm('Bạn có chắc chắn muốn bắt đầu bài kiểm tra? Bạn sẽ không thể quay lại video sau khi bắt đầu.')) {
             return;
         }
@@ -511,10 +522,12 @@
             }
 
             state.currentExamId = result.exam_id;
-            renderExam(result.questions, result.time_limit);
+
+            console.log('Questions from backend (no extra transform):', result.questions);
+
+            renderExam(result.questions, result.time_limit); // ← SỬA: Pass result.questions trực tiếp
             hideLoading();
 
-            // Hide video, show exam
             const videoContainer = qs('.video-container');
             const examContainer = qs('.exam-container');
 
@@ -524,7 +537,6 @@
                 examContainer.scrollIntoView({ behavior: 'smooth' });
             }
 
-            // Start timer if time limit exists
             if (result.time_limit) {
                 startExamTimer(result.time_limit);
             }
@@ -556,23 +568,29 @@
         const questionsHTML = questions
             .map(
                 (q, index) => `
-            <div class="question" data-question-id="${q.ID}">
-                <h3>Câu ${index + 1}: ${escapeHtml(q.QuestionText)}</h3>
-                <div class="answers">
-                    ${q.answers
-                        .map(
-                            (a) => `
-                        <div class="mcq-answer" 
-                             data-answer-id="${a.id}" 
-                             data-question-id="${q.ID}">
-                            <span class="answer-text">${escapeHtml(a.text)}</span>
+                    <div class="question-card">  <!-- Thêm class để match CSS nếu cần -->
+                        <div class="question-header">
+                            <span class="question-number">Câu ${index + 1}</span>
                         </div>
-                    `
-                        )
-                        .join('')}
-                </div>
-            </div>
-        `
+                        <h4 class="question-text">${escapeHtml(q.QuestionText)}</h4>
+                        <div class="answers">
+                            ${q.answers
+                                .map(
+                                    (a) => `
+                                    <label class="answer-option"
+                                        data-answer-id="${a.id}" 
+                                        data-question-id="${q.ID}">
+                                        <input type="radio" 
+                                            name="question_${q.ID}"
+                                            value="${a.id}">
+                                        <span class="answer-text">${escapeHtml(a.text)}</span>
+                                    </label>
+                                `
+                                )
+                                .join('')}
+                        </div>
+                    </div>
+                `
             )
             .join('');
 
@@ -835,9 +853,14 @@
 
                 try {
                     const notifications = await apiRequest('/api/notifications');
-                    renderNotifications(menu, notifications);
+                    if (notifications.success) {
+                        renderNotifications(menu, notifications.notifications);
+                    } else {
+                        throw new Error(notifications.error || 'No notifications');
+                    }
                 } catch (e) {
-                    menu.innerHTML = '<div class="dropdown-error">Không thể tải thông báo</div>';
+                    console.error('Notifications load failed:', e);
+                    menu.innerHTML = '<div class="dropdown-error">Không thể tải thông báo: ' + e.message + '</div>';
                 }
             }
         });

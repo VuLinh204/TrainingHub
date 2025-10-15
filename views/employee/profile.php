@@ -197,6 +197,15 @@
 </div>
 
 <style>
+:root {
+    --primary-color: #2a73dd;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --sidebar-width: 280px;
+    --primary-dark: #ccc
+}
+
 .profile-container {
     max-width: 1200px;
     margin: 0 auto;

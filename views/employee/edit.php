@@ -17,6 +17,11 @@
         <?php unset($_SESSION['profile_errors']); ?>
     <?php endif; ?>
 
+    <?php 
+    // FIX: Kiểm tra nếu là admin (dựa trên session role hoặc position)
+    $isAdmin = ($employee['role'] ?? '') === 'admin';
+    ?>
+    
     <div class="edit-profile-card">
         <form method="POST" action="<?= BASE_URL ?>/profile/update" class="profile-form">
             <div class="form-section">
@@ -55,7 +60,8 @@
                            name="email" 
                            class="form-control"
                            value="<?= htmlspecialchars($employee['Email']) ?>"
-                           disabled>
+                           <?= !$isAdmin ? 'disabled' : '' ?>
+                    >
                     <small class="form-help">Email không thể thay đổi</small>
                 </div>
 
@@ -72,7 +78,7 @@
 
             <div class="form-section">
                 <h3>Thông tin công việc</h3>
-                
+
                 <div class="form-group">
                     <label for="department">Phòng ban</label>
                     <input type="text" 
@@ -80,7 +86,8 @@
                            name="department" 
                            class="form-control"
                            value="<?= htmlspecialchars($employee['Department'] ?? '') ?>"
-                           disabled>
+                           <?= !$isAdmin ? 'disabled' : '' ?>
+                           >
                     <small class="form-help">Được quản lý bởi quản trị viên</small>
                 </div>
 
@@ -91,7 +98,8 @@
                            name="position" 
                            class="form-control"
                            value="<?= htmlspecialchars($employee['Position'] ?? '') ?>"
-                           disabled>
+                            <?= !$isAdmin ? 'disabled' : '' ?>
+                           >
                     <small class="form-help">Được quản lý bởi quản trị viên</small>
                 </div>
             </div>
@@ -198,6 +206,10 @@
     background: #f8f9fa;
     color: #6c757d;
     cursor: not-allowed;
+}
+
+.form-control option {
+    padding: 8px;
 }
 
 .form-help {

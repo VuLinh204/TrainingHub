@@ -6,6 +6,7 @@
     <title>404 - Không tìm thấy trang</title>
     <?php $baseUrl = dirname($_SERVER['SCRIPT_NAME']); ?>
     <link rel="stylesheet" href="<?php echo $baseUrl; ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo $baseUrl; ?>/assets/css/main.css">
 </head>
 <body class="error-page">
     <div class="error-container">

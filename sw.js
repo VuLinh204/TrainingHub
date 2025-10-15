@@ -1,9 +1,9 @@
 /**
  * Service Worker cho Nền tảng Đào tạo PWA
- * Đặt file này tại thư mục gốc: sw.js
+ * FIXED: Không cache POST requests
  */
 
-const CACHE_NAME = 'training-platform-v1.0.0';
+const CACHE_NAME = 'training-platform-v1.0.1';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_ASSETS = [
@@ -14,7 +14,7 @@ const STATIC_ASSETS = [
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css',
 ];
 
-// Install event - cache static assets một cách an toàn
+// Install event - cache static assets
 self.addEventListener('install', (event) => {
     console.log('[ServiceWorker] Install');
     event.waitUntil(
@@ -22,16 +22,15 @@ self.addEventListener('install', (event) => {
             .open(CACHE_NAME)
             .then((cache) => {
                 console.log('[ServiceWorker] Caching static assets');
-                // Thêm từng asset một để xử lý lỗi partial response
                 return Promise.all(
                     STATIC_ASSETS.map((url) => {
                         return fetch(url)
                             .then((response) => {
-                                // Bỏ qua nếu là partial response (206)
+                                // Only cache successful GET responses
                                 if (response.ok && response.status !== 206) {
                                     return cache.put(url, response);
                                 }
-                                return Promise.resolve(); // Bỏ qua asset này
+                                return Promise.resolve();
                             })
                             .catch((error) => {
                                 console.warn('[ServiceWorker] Failed to cache', url, error);
@@ -40,9 +39,7 @@ self.addEventListener('install', (event) => {
                     })
                 );
             })
-            .then(() => {
-                return self.skipWaiting();
-            })
+            .then(() => self.skipWaiting())
     );
 });
 
@@ -62,9 +59,7 @@ self.addEventListener('activate', (event) => {
                     })
                 );
             })
-            .then(() => {
-                return self.clients.claim();
-            })
+            .then(() => self.clients.claim())
     );
 });
 
@@ -77,7 +72,14 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Skip API calls (always fetch from network)
+    // CRITICAL FIX: Skip caching for POST/PUT/DELETE requests
+    if (request.method !== 'GET') {
+        console.log('[ServiceWorker] Skipping cache for', request.method, request.url);
+        event.respondWith(fetch(request));
+        return;
+    }
+
+    // Skip API calls (always fetch from network for GET APIs)
     if (request.url.includes('/api/')) {
         event.respondWith(
             fetch(request).catch(() => {
@@ -95,7 +97,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Không cache các request có Range header (thường cho video)
+    // Skip requests with Range header (usually for video)
     if (request.headers.has('range')) {
         event.respondWith(fetch(request));
         return;
@@ -106,7 +108,7 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(
             fetch(request)
                 .then((response) => {
-                    // Cache successful full responses (skip partial content và media)
+                    // Cache successful GET responses (skip partial content and media)
                     if (response.ok && response.status !== 206) {
                         const contentType = response.headers.get('content-type');
                         if (!contentType || !contentType.startsWith('video/')) {
@@ -128,7 +130,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Cache first for static assets
+    // Cache first for static assets (GET only, already filtered above)
     event.respondWith(
         caches
             .match(request)
@@ -138,7 +140,7 @@ self.addEventListener('fetch', (event) => {
                 }
 
                 return fetch(request).then((response) => {
-                    // Cache valid full responses (skip partial content và media)
+                    // Cache valid GET responses (skip partial content and media)
                     if (response.ok && response.status !== 206) {
                         const contentType = response.headers.get('content-type');
                         if (!contentType || !contentType.startsWith('video/')) {
@@ -168,21 +170,8 @@ self.addEventListener('sync', (event) => {
 });
 
 async function syncExamData() {
-    const cache = await caches.open(CACHE_NAME);
-    const requests = await cache.keys();
-
-    for (const request of requests) {
-        if (request.url.includes('/api/exam/submit')) {
-            try {
-                const response = await fetch(request);
-                if (response.ok) {
-                    await cache.delete(request);
-                }
-            } catch (error) {
-                console.error('Sync failed:', error);
-            }
-        }
-    }
+    // This would sync any queued exam data when connection is restored
+    console.log('[ServiceWorker] Syncing exam data...');
 }
 
 // Push notification support

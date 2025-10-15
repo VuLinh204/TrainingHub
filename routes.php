@@ -45,4 +45,5 @@ return [
     'POST /api/lesson/track' => 'SubjectController@trackProgress',
     'POST /api/lesson/complete' => 'SubjectController@complete',
     'GET /api/subject/:id/progress' => 'SubjectController@getProgress',
+    'GET /api/notifications' => 'NotificationsController@index',
 ];

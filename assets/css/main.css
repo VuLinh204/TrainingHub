@@ -76,7 +76,7 @@ body.with-sidebar {
 
 .subject-content {
     background: white;
-    border-radius: 8px;
+    border-radius: 30px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     margin-bottom: 2rem;
 }
@@ -87,10 +87,9 @@ body.with-sidebar {
     align-items: center;
     gap: 8px;
     padding: 12px 24px;
-    background: var(--primary-color);
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 30px;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
@@ -100,7 +99,6 @@ body.with-sidebar {
 
 .take-exam-btn:hover:not(.disabled),
 .complete-btn:hover:not(.disabled) {
-    background: #1b62cc;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(42, 115, 221, 0.3);
 }
@@ -207,7 +205,7 @@ body.with-sidebar {
     gap: 1rem;
     padding: 1rem;
     background: #f8f9fa;
-    border-radius: 4px;
+    border-radius: 30px;
     transition: all 0.2s;
 }
 
@@ -231,7 +229,7 @@ body.with-sidebar {
 .exam-info {
     padding: 20px;
     background: #eff6ff;
-    border-radius: 8px;
+    border-radius: 30px;
     margin-bottom: 24px;
     border-left: 4px solid var(--primary-color);
 }
@@ -260,7 +258,7 @@ body.with-sidebar {
     margin: 2rem 0;
     padding: 1.5rem;
     background: #f8f9fa;
-    border-radius: 8px;
+    border-radius: 30px;
 }
 
 .passed-message {
@@ -282,7 +280,7 @@ body.with-sidebar {
 
 .subject-card {
     background: white;
-    border-radius: 12px;
+    border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     transition: all 0.3s;
@@ -322,7 +320,7 @@ body.with-sidebar {
     background: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 4px 10px;
-    border-radius: 6px;
+    border-radius: 30px;
     font-size: 13px;
     font-weight: 600;
 }
@@ -346,7 +344,7 @@ body.with-sidebar {
     font-weight: 600;
     margin-bottom: 12px;
     padding: 6px 12px;
-    border-radius: 6px;
+    border-radius: 30px;
 }
 
 .status.completed {
@@ -384,7 +382,7 @@ body.with-sidebar {
     max-width: 1000px;
     margin: 0 auto;
     background: white;
-    border-radius: 8px;
+    border-radius: 30px;
     overflow: hidden;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     margin-bottom: 30px;
@@ -540,7 +538,7 @@ body.with-sidebar {
     right: 20px;
     padding: 12px 20px;
     background: white;
-    border-radius: 6px;
+    border-radius: 30px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     transform: translateY(100px);
     opacity: 0;
@@ -567,11 +565,11 @@ body.with-sidebar {
 /* Buttons */
 .btn-primary {
     display: inline-block;
-    padding: 8px 16px;
+    padding: 10px 20px;
     background: var(--primary-color);
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 30px;
     cursor: pointer;
     text-decoration: none;
     transition: background 0.2s;
@@ -663,7 +661,7 @@ body.with-sidebar {
     gap: 12px;
     font-weight: 500;
     margin: 4px 12px;
-    border-radius: 8px;
+    border-radius: 30px;
 }
 
 .nav-item:hover {
@@ -688,7 +686,7 @@ body.with-sidebar {
     background: var(--primary-color);
     color: white;
     padding: 3px 10px;
-    border-radius: 12px;
+    border-radius: 30px;
     font-size: 12px;
     font-weight: 700;
 }
@@ -698,7 +696,7 @@ body.with-sidebar {
     background: #e5e7eb;
     color: #6b7280;
     padding: 3px 10px;
-    border-radius: 12px;
+    border-radius: 30px;
     font-size: 12px;
     font-weight: 600;
 }
@@ -722,14 +720,14 @@ body.with-sidebar {
 .progress-summary .progress-bar {
     height: 8px;
     background: #e5e7eb;
-    border-radius: 4px;
+    border-radius: 30px;
     overflow: hidden;
 }
 
 .progress-summary .progress {
     height: 100%;
     background: linear-gradient(90deg, var(--primary-color), #1e40af);
-    border-radius: 4px;
+    border-radius: 30px;
     transition: width 0.5s ease;
 }
 
@@ -748,7 +746,7 @@ body.with-sidebar {
     color: #666;
     text-decoration: none;
     padding: 8px;
-    border-radius: 6px;
+    border-radius: 30px;
     transition: all 0.2s;
 }
 
@@ -771,7 +769,7 @@ body.with-sidebar {
     text-align: center;
     padding: 40px;
     background: white;
-    border-radius: 12px;
+    border-radius: 30px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     animation: fadeInUp 0.5s ease-out;
 }
@@ -890,7 +888,7 @@ body.with-sidebar {
     width: 100%;
     padding: 10px 16px 10px 40px;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 30px;
     font-size: 14px;
     transition: all 0.2s;
 }
@@ -931,7 +929,7 @@ body.with-sidebar {
     display: flex;
     align-items: center;
     gap: 8px;
-    border-radius: 8px;
+    border-radius: 30px;
     transition: all 0.2s;
 }
 
@@ -949,7 +947,7 @@ body.with-sidebar {
     top: calc(100% + 8px);
     right: 0;
     background: white;
-    border-radius: 10px;
+    border-radius: 16px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
     min-width: 220px;
     padding: 8px;
@@ -982,7 +980,7 @@ body.with-sidebar {
     color: #4b5563;
     text-decoration: none;
     transition: all 0.2s;
-    border-radius: 6px;
+    border-radius: 30px;
     font-size: 14px;
 }
 
@@ -1030,7 +1028,7 @@ body.with-sidebar {
     max-width: 500px;
     padding: 16px 20px;
     background: white;
-    border-radius: 8px;
+    border-radius: 30px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     position: fixed;
     bottom: 30px;
@@ -1112,7 +1110,7 @@ select.error {
 .stat-card {
     background: white;
     padding: 24px;
-    border-radius: 12px;
+    border-radius: 30px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     border: 1px solid #f0f0f0;
     transition: all 0.3s;
@@ -1143,7 +1141,7 @@ select.error {
 .mcq-answer {
     padding: 16px 20px;
     border: 2px solid #e0e0e0;
-    border-radius: 8px;
+    border-radius: 30px;
     margin: 12px 0;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1220,7 +1218,7 @@ select.error {
 .question {
     background: white;
     padding: 24px;
-    border-radius: 12px;
+    border-radius: 30px;
     margin-bottom: 24px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     border: 1px solid #f0f0f0;
@@ -1238,7 +1236,7 @@ select.error {
     margin-top: 30px;
     padding: 20px;
     background: #f8f9fa;
-    border-radius: 8px;
+    border-radius: 30px;
     text-align: center;
 }
 

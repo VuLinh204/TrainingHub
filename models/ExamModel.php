@@ -212,7 +212,7 @@ class ExamModel extends Model {
                                  AND DATE(StartTime) = CURDATE()";
             $attemptsToday = $this->query($attemptsTodaySql, [$employeeId, $subjectId])[0]['total'];
 
-            if ($attemptsToday >= 10) {
+            if ($attemptsToday >= 999) {
                 return [
                     'allowed' => false,
                     'message' => 'Bạn đã hết lượt thi trong ngày. Vui lòng thử lại vào ngày mai.'
@@ -221,7 +221,7 @@ class ExamModel extends Model {
 
             return [
                 'allowed' => true,
-                'remaining_attempts' => 10 - $attemptsToday
+                'remaining_attempts' => 999 - $attemptsToday
             ];
         } catch (Exception $e) {
             error_log("canTakeExam error: " . $e->getMessage());

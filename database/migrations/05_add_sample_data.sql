@@ -1,13 +1,13 @@
 -- Thêm dữ liệu mẫu
 INSERT INTO tblTrain_KnowledgeGroup (Name) VALUES 
-('An toàn lao động'),
-('Quy trình sản xuất'),
-('Kỹ năng mềm');
+('Javascript cơ bản'),
+('Javascript nâng cao'),
+('Javascript ̃& ReactJS');
 
 INSERT INTO tblTrain_Position (PositionName, Department) VALUES
-('Nhân viên', 'Sản xuất'),
-('Tổ trưởng', 'Sản xuất'),
-('Quản lý', 'Sản xuất'),
+('Nhân viên', 'IT'),
+('Tổ trưởng', 'IT'),
+('Quản lý', 'IT'),
 ('Nhân viên', 'IT'),
 ('Quản lý', 'IT');
 
@@ -24,7 +24,7 @@ INSERT INTO tblTrain_Employee (
 -- Admin account: admin@company.com / admin123
 ('Admin', 'User', 'admin@company.com', 
 '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
-'IT', 'Administrator', 5, 1),
+'IT', 'Admin', 5, 1),
 -- Test account: test@company.com / password
 ('Test', 'User', 'test@company.com',
 '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
@@ -39,22 +39,22 @@ INSERT INTO tblTrain_Subject (
     MinWatchPercent,
     RequiredScore
 ) VALUES 
-('An toàn lao động cơ bản',
+('Javascript cơ bản cơ bản',
 'Khóa học cung cấp kiến thức cơ bản về an toàn lao động trong nhà máy',
-'https://example.com/videos/safety-basic.mp4',
+'http://localhost/Training/assets/videos/js-basic.mp4',
 1800,
 1,
 90,
 80);
 
 INSERT INTO tblTrain_Question (SubjectID, QuestionText) VALUES
-(1, 'Đâu là thiết bị bảo hộ lao động bắt buộc khi vào xưởng sản xuất?');
+(1, 'Trong JavaScript, var, let, và const khác nhau chủ yếu ở điểm nào?');
 
 INSERT INTO tblTrain_Answer (QuestionID, AnswerText, IsCorrect) VALUES
-(1, 'Mũ bảo hộ', 1),
-(1, 'Đồng hồ', 0),
-(1, 'Điện thoại', 0),
-(1, 'Nhẫn', 0);
+(1, 'let và const có phạm vi khối (block scope), còn var có phạm vi hàm (function scope)', 1),
+(1, 'Chỉ khác nhau ở cách đặt tên biến', 0),
+(1, 'var nhanh hơn let và const', 0),
+(1, 'Không có sự khác biệt nào, chỉ là cú pháp khác', 0);
 
 -- Assign subjects to positions
 INSERT INTO tblTrain_Assign (PositionID, SubjectID, AssignDate, ExpireDate, IsRequired) VALUES

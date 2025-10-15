@@ -1,0 +1,236 @@
+/* ===================================
+   MODALS & OVERLAYS
+=================================== */
+
+/* Generic Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.modal.active {
+    display: flex;
+    opacity: 1;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 30px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalSlideIn 0.3s;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-50px) scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #1f2937;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 30px;
+    transition: all 0.2s;
+}
+
+.modal-close:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 20px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Exam Result Overlay */
+.exam-result-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.exam-result-card {
+    background: white;
+    padding: 40px;
+    border-radius: 16px;
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+    animation: resultSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.exam-result-card .result-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+}
+
+.exam-result-card.passed .result-icon i {
+    color: var(--success-color);
+}
+
+.exam-result-card.failed .result-icon i {
+    color: var(--danger-color);
+}
+
+.exam-result-card h2 {
+    margin: 0 0 15px;
+    font-size: 28px;
+    color: #333;
+}
+
+.exam-result-card.passed h2 {
+    color: var(--success-color);
+}
+
+.exam-result-card.failed h2 {
+    color: var(--danger-color);
+}
+
+.exam-result-card .result-score {
+    font-size: 24px;
+    margin: 20px 0;
+    color: #666;
+}
+
+.exam-result-card .result-score strong {
+    color: var(--primary-color);
+    font-size: 32px;
+}
+
+.exam-result-card .result-message {
+    margin: 20px 0;
+    color: #666;
+    line-height: 1.6;
+}
+
+.exam-result-card .exam-result-actions {
+    margin-top: 30px;
+}
+
+.exam-result-card .btn-primary {
+    padding: 12px 32px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+@keyframes resultSlideIn {
+    from {
+        transform: translateY(-50px) scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Tooltip */
+.tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 30px;
+    font-size: 13px;
+    white-space: nowrap;
+    z-index: 10000;
+    pointer-events: none;
+    animation: tooltipFadeIn 0.2s;
+}
+
+.tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .exam-result-card {
+        padding: 24px;
+        width: 95%;
+    }
+
+    .exam-result-card h2 {
+        font-size: 22px;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 20px;
+    }
+}

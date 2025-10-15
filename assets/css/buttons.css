@@ -1,0 +1,197 @@
+/* ===================================
+   BUTTONS COMPONENT
+=================================== */
+
+/* Primary Button */
+.btn-primary {
+    display: inline-block;
+    padding: 10px 20px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.btn-primary:hover {
+    background: #1b62cc;
+}
+
+.btn-primary.disabled,
+.btn-primary:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Secondary Button */
+.btn-secondary {
+    display: inline-block;
+    padding: 10px 20px;
+    background: #6b7280;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.btn-secondary:hover {
+    background: #4b5563;
+    transform: translateY(-1px);
+}
+
+/* Success Button */
+.btn-success {
+    background: var(--success-color);
+}
+
+.btn-success:hover {
+    background: #1e7e34;
+}
+
+/* Danger Button */
+.btn-danger {
+    background: var(--danger-color);
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
+/* Outline Button */
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-outline:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Button Sizes */
+.btn-sm {
+    padding: 6px 16px;
+    font-size: 13px;
+}
+
+.btn-lg {
+    padding: 14px 32px;
+    font-size: 16px;
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+}
+
+/* Special Buttons */
+.take-exam-btn,
+.complete-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 16px;
+}
+
+.take-exam-btn:hover:not(.disabled),
+.complete-btn:hover:not(.disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(42, 115, 221, 0.3);
+}
+
+.take-exam-btn.disabled,
+.complete-btn.disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.take-exam-btn::before {
+    content: '\f044';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+}
+
+.complete-btn::before {
+    content: '\f00c';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+}
+
+/* Scroll to Top Button */
+.scroll-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(42, 115, 221, 0.3);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scroll-to-top.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.scroll-to-top:hover {
+    background: #1b62cc;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(42, 115, 221, 0.4);
+}
+
+/* Logout Button */
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #666;
+    text-decoration: none;
+    padding: 8px;
+    border-radius: 30px;
+    transition: all 0.2s;
+}
+
+.logout-btn:hover {
+    background: #f5f5f5;
+    color: var(--danger-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .scroll-to-top {
+        width: 44px;
+        height: 44px;
+        bottom: 20px;
+        right: 20px;
+    }
+}

@@ -523,8 +523,12 @@
 
 .empty-state i {
     font-size: 64px;
-    color: #d1d5db;
+    color: #fff;
     margin-bottom: 16px;
+}
+
+.empty-state .empty-icon {
+    color: #d1d5db;
 }
 
 .empty-state h3 {

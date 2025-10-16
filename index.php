@@ -99,10 +99,9 @@ if (strpos($request, '/api/') === 0) {
         http_response_code(429);
         die(json_encode(['error' => 'Too many requests']));
     }
-    
-    // Handle API routes
-    $apiRouter = new ApiRouter();
-    $apiRouter->handle(substr($request, 4));
+
+    $router = new Router();
+    $router->handle($request);  // Pass full /api/... path
     exit;
 }
 
@@ -257,77 +256,5 @@ class Router {
         
         http_response_code(404);
         require BASE_PATH . '/views/error/404.php';
-    }
-}
-
-class ApiRouter {
-    private $apiRoutes = [
-        'POST /lesson/track' => 'SubjectController@trackProgress',
-        'POST /lesson/complete' => 'SubjectController@complete',
-        'POST /exam/start' => 'ExamController@start',
-        'POST /exam/check' => 'ExamController@checkAnswer',
-        'POST /exam/submit' => 'ExamController@submit',
-        'GET /subject/:id/progress' => 'SubjectController@getProgress'
-    ];
-    
-    public function handle($path) {
-        $method = $_SERVER['REQUEST_METHOD'];
-        
-        foreach ($this->apiRoutes as $pattern => $handler) {
-            // Split pattern into method and path
-            $parts = explode(' ', $pattern, 2);
-            if (count($parts) !== 2) {
-                continue;
-            }
-            list($methodPattern, $pathPattern) = $parts;
-            
-            // Skip if methods don't match
-            if ($methodPattern !== $method) {
-                continue;
-            }
-            
-            // Build regex for path pattern
-            $quotedPath = preg_quote($pathPattern, '#');
-            $pathRegex = '#^' . preg_replace('#\\\\:([a-zA-Z0-9_]+)#', '(?P<$1>[^/]+)', $quotedPath) . '$#';
-            error_log("API path regex: " . $pathRegex . " against: " . $path);
-            
-            if (preg_match($pathRegex, $path, $matches)) {
-                error_log("API route match: " . $pattern);
-                
-                // Extract named parameters
-                $params = [];
-                foreach ($matches as $key => $value) {
-                    if (is_string($key) && !empty($value)) {
-                        $params[$key] = $value;
-                    }
-                }
-                
-                // Add JSON request body for POST requests
-                if ($method === 'POST') {
-                    $input = file_get_contents('php://input');
-                    $json = json_decode($input, true);
-                    if ($json !== null) {
-                        $params['data'] = $json;
-                    } else {
-                        error_log("Invalid JSON input: " . $input);
-                    }
-                }
-                
-                // Call controller action
-                list($controller, $action) = explode('@', $handler);
-                $instance = new $controller();
-                $result = call_user_func_array([$instance, $action], array_values($params)); // Pass as positional; adjust if needed
-                
-                // Send JSON response
-                header('Content-Type: application/json');
-                echo json_encode($result ?? ['success' => true]);
-                return;
-            }
-        }
-        
-        // 404 for API
-        http_response_code(404);
-        header('Content-Type: application/json');
-        echo json_encode(['error' => 'Endpoint not found']);
     }
 }

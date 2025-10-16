@@ -15,13 +15,9 @@ class ExamController extends Controller {
         $this->subjectModel = new SubjectModel();
     }
 
-    /**
-     * Show exam page
-     */
     public function show($id) {
         $employeeId = $this->checkAuth();
         
-        // Get subject with questions
         $subject = $this->subjectModel->getWithProgress($id, $employeeId);
         
         if (!$subject) {
@@ -30,7 +26,10 @@ class ExamController extends Controller {
             return;
         }
 
-        // Check if employee can take exam
+        if (!isset($subject['SubjectName'])) {
+            $subject['SubjectName'] = $subject['Title'] ?? 'Khóa học';
+        }
+
         $canTakeExam = $this->examModel->canTakeExam($employeeId, $id);
         
         if (!$canTakeExam['allowed']) {
@@ -39,22 +38,17 @@ class ExamController extends Controller {
             return;
         }
 
-        // Get previous attempts
         $attempts = $this->examModel->getAttempts($employeeId, $id);
         
         $this->render('exam/take', [
             'subject' => $subject,
             'attempts' => $attempts,
-            'canTakeExam' => $canTakeExam
+            'canTakeExam' => $canTakeExam,
+            'pageTitle' => 'Bài kiểm tra: ' . $subject['SubjectName']
         ]);
     }
 
-    /**
-     * Start new exam (API)
-     * FIXED: Data transformation for main.js compatibility
-     */
     public function start($id) {
-        // Clean output buffer
         if (ob_get_level()) {
             ob_clean();
         }
@@ -69,7 +63,6 @@ class ExamController extends Controller {
         }
         
         try {
-            // Validate subject exists
             $subject = $this->subjectModel->find($id);
             if (!$subject) {
                 http_response_code(404);
@@ -78,7 +71,6 @@ class ExamController extends Controller {
                 exit;
             }
 
-            // Check if can take exam
             $canTake = $this->examModel->canTakeExam($employeeId, $id);
             if (!$canTake['allowed']) {
                 http_response_code(403);
@@ -87,13 +79,16 @@ class ExamController extends Controller {
                 exit;
             }
 
-            // Create exam record
+            // Xóa các phiên thi chưa hoàn thành
+            $stmt = $this->db->prepare("
+                DELETE FROM tblTrain_Exam 
+                WHERE EmployeeID = ? AND SubjectID = ? AND Status = 'started'
+            ");
+            $stmt->execute([$employeeId, $id]);
+
             $examId = $this->examModel->startExam($employeeId, $id);
-            
-            // Get questions with shuffled answers
             $questions = $this->examModel->getExamQuestions($id);
             
-            // DEBUG: Log questions structure
             error_log("Questions fetched: " . count($questions));
             if (!empty($questions)) {
                 error_log("First question structure: " . json_encode($questions[0]));
@@ -106,9 +101,6 @@ class ExamController extends Controller {
                 exit;
             }
 
-            // CRITICAL FIX: Transform data to match main.js expected format
-            // main.js expects: { id: ..., text: ... } (lowercase)
-            // backend returns: { ID: ..., AnswerText: ... } (uppercase)
             $transformedQuestions = array_map(function($question) {
                 return [
                     'ID' => $question['ID'],
@@ -117,20 +109,16 @@ class ExamController extends Controller {
                     'Score' => $question['Score'] ?? 1,
                     'answers' => array_map(function($answer) {
                         return [
-                            'id' => (int)$answer['ID'],              // lowercase 'id'
-                            'text' => $answer['AnswerText']          // 'text' instead of 'AnswerText'
+                            'id' => (int)$answer['ID'],
+                            'text' => $answer['AnswerText']
                         ];
                     }, $question['answers'] ?? [])
                 ];
             }, $questions);
 
-            // Log transformed data for debugging
             error_log("Transformed first question: " . json_encode($transformedQuestions[0]));
-
-            // Log exam start
             error_log("Exam started successfully: ID=$examId, Employee=$employeeId, Subject=$id, Questions=" . count($transformedQuestions));
 
-            // Return JSON response
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
@@ -155,9 +143,6 @@ class ExamController extends Controller {
         }
     }
 
-    /**
-     * Check single answer (API)
-     */
     public function checkAnswer() {
         if (ob_get_level()) {
             ob_clean();
@@ -206,10 +191,6 @@ class ExamController extends Controller {
         }
     }
 
-    /**
-     * Submit exam (API)
-     * FIXED: Proper JSON response handling
-     */
     public function submit($id) {
         if (ob_get_level()) {
             ob_clean();
@@ -240,8 +221,18 @@ class ExamController extends Controller {
             exit;
         }
 
+        // Kiểm tra định dạng answers
+        foreach ($data['answers'] as $answer) {
+            if (!isset($answer['question_id'], $answer['answer_id']) ||
+                !is_numeric($answer['question_id']) || !is_numeric($answer['answer_id'])) {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Dữ liệu câu trả lời không hợp lệ']);
+                exit;
+            }
+        }
+
         try {
-            // Verify exam belongs to employee
             $exam = $this->examModel->find($data['exam_id']);
             if (!$exam || $exam['EmployeeID'] != $employeeId) {
                 http_response_code(403);
@@ -250,7 +241,6 @@ class ExamController extends Controller {
                 exit;
             }
 
-            // Check if already submitted
             if ($exam['EndTime'] !== null) {
                 http_response_code(400);
                 header('Content-Type: application/json');
@@ -258,23 +248,22 @@ class ExamController extends Controller {
                 exit;
             }
 
-            // Process exam submission
+            error_log("Submit payload: " . json_encode($data));
+
             $result = $this->examModel->submitExam($data['exam_id'], $data['answers']);
             
             if (!$result) {
                 throw new Exception('Failed to process exam submission');
             }
 
-            // Log submission
             error_log("Exam submitted: ID={$data['exam_id']}, Score={$result['score']}, Passed=" . ($result['passed'] ? 'Yes' : 'No'));
 
-            // Return success response
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
                 'passed' => $result['passed'],
                 'score' => $result['score'],
-                'required' => $result['required'],
+                'required' => $result['required_percentage'] ?? 70,
                 'correct_answers' => $result['correct_count'],
                 'total_questions' => $result['total_questions'],
                 'percentage' => round(($result['correct_count'] / $result['total_questions']) * 100, 1),
@@ -299,9 +288,6 @@ class ExamController extends Controller {
         }
     }
 
-    /**
-     * View exam results
-     */
     public function results($examId) {
         $employeeId = $this->checkAuth();
         
@@ -313,14 +299,12 @@ class ExamController extends Controller {
             return;
         }
 
-        // Security check
         if ($exam['EmployeeID'] != $employeeId) {
             http_response_code(403);
             $this->render('error/403');
             return;
         }
 
-        // Get detailed results
         $details = $this->examModel->getExamDetails($examId);
 
         $this->render('exam/results', [
@@ -330,28 +314,20 @@ class ExamController extends Controller {
         ]);
     }
 
-    /**
-     * Retry exam (create new attempt)
-     */
     public function retry($subjectId) {
         $employeeId = $this->checkAuth();
         
-        // Check if can retry
         $canTake = $this->examModel->canTakeExam($employeeId, $subjectId);
         
         if (!$canTake['allowed']) {
             $_SESSION['error'] = $canTake['message'];
-            $this->redirect('subject/' . $subjectId);
+            $this->redirect('exam/' . $subjectId . '/start');
             return;
         }
 
-        // Redirect to subject page to start new exam
-        $this->redirect('subject/' . $subjectId);
+        $this->redirect('exam/' . $subjectId . '/start');
     }
 
-    /**
-     * Get exam statistics for employee
-     */
     public function statistics() {
         $employeeId = $this->checkAuth();
         
@@ -361,7 +337,7 @@ class ExamController extends Controller {
                 AVG(Score) as avg_score,
                 MAX(Score) as best_score,
                 MIN(Score) as lowest_score
-                FROM " . TBL_EXAM . "
+                FROM tblTrain_Exam
                 WHERE EmployeeID = ? AND Status = 'completed'";
         
         $stmt = $this->db->prepare($sql);
@@ -375,3 +351,4 @@ class ExamController extends Controller {
         ]);
     }
 }
+?>

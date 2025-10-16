@@ -17,7 +17,7 @@ class EmployeeController extends Controller {
     }
 
     /**
-     * Show employee profile
+     * Hiển thị hồ sơ nhân viên
      */
     public function profile() {
         $employeeId = $this->checkAuth();
@@ -30,16 +30,16 @@ class EmployeeController extends Controller {
             return;
         }
 
-        // Get completion statistics
+        // Lấy thống kê hoàn thành
         $completionStats = $this->completionModel->getEmployeeCompletionRate($employeeId);
         
-        // Get certificates
+        // Lấy chứng chỉ
         $certificates = $this->certificateModel->getEmployeeCertificates($employeeId);
         
-        // Get recent completions
+        // Lấy các khóa học hoàn thành gần đây
         $recentCompletions = $this->completionModel->getRecentCompletions($employeeId, 5);
         
-        // Get sidebar data
+        // Lấy dữ liệu thanh bên
         $sidebarData = $this->getSidebarData($employeeId);
         
         $this->render('employee/profile', [
@@ -53,7 +53,7 @@ class EmployeeController extends Controller {
     }
 
     /**
-     * Show edit profile form
+     * Hiển thị form chỉnh sửa hồ sơ
      */
     public function editProfile() {
         $employeeId = $this->checkAuth();
@@ -66,7 +66,7 @@ class EmployeeController extends Controller {
             return;
         }
 
-        // Get sidebar data
+        // Lấy dữ liệu thanh bên
         $sidebarData = $this->getSidebarData($employeeId);
         
         $this->render('employee/edit', [
@@ -77,46 +77,46 @@ class EmployeeController extends Controller {
     }
 
     /**
-     * Update employee profile
+     * Cập nhật hồ sơ nhân viên
      */
     public function updateProfile() {
         $employeeId = $this->checkAuth();
         
-        // Validate input
+        // Xác thực dữ liệu đầu vào
         $errors = [];
         $data = [];
 
-        // First Name
+        // Tên
         if (empty($_POST['first_name'])) {
             $errors[] = 'Tên không được để trống';
         } else {
             $data['FirstName'] = trim($_POST['first_name']);
         }
 
-        // Last Name
+        // Họ
         if (empty($_POST['last_name'])) {
             $errors[] = 'Họ không được để trống';
         } else {
             $data['LastName'] = trim($_POST['last_name']);
         }
 
-        // Phone (optional)
+        // Số điện thoại (tùy chọn)
         if (!empty($_POST['phone'])) {
             $data['Phone'] = trim($_POST['phone']);
         }
 
-        // If there are errors, redirect back with errors
+        // Nếu có lỗi, chuyển hướng về form chỉnh sửa
         if (!empty($errors)) {
             $_SESSION['profile_errors'] = $errors;
             $this->redirect('profile/edit');
             return;
         }
 
-        // Update profile
+        // Cập nhật hồ sơ
         $success = $this->employeeModel->updateProfile($employeeId, $data);
 
         if ($success) {
-            // Update session name
+            // Cập nhật tên trong session
             $_SESSION['employee_name'] = $data['FirstName'] . ' ' . $data['LastName'];
             $_SESSION['profile_success'] = 'Cập nhật hồ sơ thành công';
         } else {
@@ -127,14 +127,14 @@ class EmployeeController extends Controller {
     }
 
     /**
-     * Show change password form
+     * Hiển thị form đổi mật khẩu
      */
     public function changePasswordForm() {
         $employeeId = $this->checkAuth();
         
         $employee = $this->employeeModel->findById($employeeId);
         
-        // Get sidebar data
+        // Lấy dữ liệu thanh bên
         $sidebarData = $this->getSidebarData($employeeId);
         
         $this->render('employee/change_password', [
@@ -145,7 +145,7 @@ class EmployeeController extends Controller {
     }
 
     /**
-     * Change password
+     * Đổi mật khẩu
      */
     public function changePassword() {
         $employeeId = $this->checkAuth();
@@ -154,7 +154,7 @@ class EmployeeController extends Controller {
         $newPassword = $_POST['new_password'] ?? '';
         $confirmPassword = $_POST['confirm_password'] ?? '';
 
-        // Validate
+        // Xác thực
         $errors = [];
 
         if (empty($currentPassword)) {
@@ -177,7 +177,7 @@ class EmployeeController extends Controller {
             return;
         }
 
-        // Verify current password
+        // Kiểm tra mật khẩu hiện tại
         $employee = $this->employeeModel->findById($employeeId);
         
         if (!password_verify($currentPassword, $employee['PasswordHash'])) {
@@ -186,7 +186,7 @@ class EmployeeController extends Controller {
             return;
         }
 
-        // Update password
+        // Cập nhật mật khẩu
         $success = $this->employeeModel->updatePassword($employeeId, $newPassword);
 
         if ($success) {
@@ -199,18 +199,18 @@ class EmployeeController extends Controller {
     }
 
     /**
-     * Show employee learning history
+     * Hiển thị lịch sử học tập của nhân viên
      */
     public function learningHistory() {
         $employeeId = $this->checkAuth();
         
-        // Get all completions
+        // Lấy tất cả hoàn thành
         $completions = $this->completionModel->getEmployeeCompletions($employeeId);
         
-        // Get all exam attempts
+        // Lấy tất cả lượt làm bài kiểm tra
         $examAttempts = $this->getExamHistory($employeeId);
         
-        // Get sidebar data
+        // Lấy dữ liệu thanh bên
         $sidebarData = $this->getSidebarData($employeeId);
         
         $this->render('employee/history', [
@@ -222,7 +222,7 @@ class EmployeeController extends Controller {
     }
 
     /**
-     * Get exam history for employee
+     * Lấy lịch sử bài kiểm tra của nhân viên
      */
     private function getExamHistory($employeeId) {
         $sql = "SELECT e.*, 
@@ -240,27 +240,27 @@ class EmployeeController extends Controller {
     }
 
     /**
-     * Show employee statistics dashboard
+     * Hiển thị bảng thống kê học tập
      */
     public function statistics() {
         $employeeId = $this->checkAuth();
         
-        // Get completion rate
+        // Lấy tỷ lệ hoàn thành
         $completionRate = $this->completionModel->getEmployeeCompletionRate($employeeId);
         
-        // Get exam statistics
+        // Lấy thống kê bài kiểm tra
         $examStats = $this->getExamStatistics($employeeId);
         
-        // Get learning time statistics
+        // Lấy thống kê thời gian xem
         $watchStats = $this->getWatchStatistics($employeeId);
         
-        // Get certificates count
+        // Lấy số lượng chứng chỉ
         $certificateStats = $this->certificateModel->getCertificateStats($employeeId);
         
-        // Get monthly progress
+        // Lấy tiến độ hàng tháng
         $monthlyProgress = $this->getMonthlyProgress($employeeId);
         
-        // Get sidebar data
+        // Lấy dữ liệu thanh bên
         $sidebarData = $this->getSidebarData($employeeId);
         
         $this->render('employee/statistics', [
@@ -275,7 +275,7 @@ class EmployeeController extends Controller {
     }
 
     /**
-     * Get exam statistics
+     * Lấy thống kê bài kiểm tra
      */
     private function getExamStatistics($employeeId) {
         $sql = "SELECT 
@@ -301,7 +301,7 @@ class EmployeeController extends Controller {
     }
 
     /**
-     * Get watch time statistics
+     * Lấy thống kê thời gian xem
      */
     private function getWatchStatistics($employeeId) {
         $sql = "SELECT 
@@ -323,7 +323,7 @@ class EmployeeController extends Controller {
     }
 
     /**
-     * Get monthly learning progress
+     * Lấy tiến độ học tập hàng tháng
      */
     private function getMonthlyProgress($employeeId) {
         $sql = "SELECT 
@@ -341,7 +341,7 @@ class EmployeeController extends Controller {
     }
 
     /**
-     * Get sidebar data for all employee pages
+     * Lấy dữ liệu thanh bên cho tất cả các trang nhân viên
      */
     private function getSidebarData($employeeId) {
         $progress = [
@@ -350,50 +350,67 @@ class EmployeeController extends Controller {
             'total_certificates' => 0
         ];
 
-        $stmt = $this->db->prepare("
-            SELECT 
-                COUNT(DISTINCT s.ID) as total_subjects,
-                SUM(CASE WHEN 
-                    EXISTS (
-                        SELECT 1 
-                        FROM " . TBL_EXAM . " e 
-                        WHERE e.SubjectID = s.ID 
-                        AND e.EmployeeID = ? 
-                        AND e.Passed = 1
-                    )
-                    THEN 1 ELSE 0 
-                END) as completed_subjects,
-                (SELECT COUNT(*) 
-                 FROM " . TBL_CERTIFICATE . " c 
-                 WHERE c.EmployeeID = ? 
-                 AND c.Status = 1) as total_certificates
-            FROM " . TBL_SUBJECT . " s
-            INNER JOIN " . TBL_ASSIGN . " a ON s.ID = a.SubjectID
-            INNER JOIN " . TBL_POSITION . " p ON p.ID = a.PositionID
-            WHERE p.ID = (
-                SELECT PositionID 
-                FROM " . TBL_EMPLOYEE . "
-                WHERE ID = ?
-            )
-            AND s.Status = 1
-            AND (a.AssignDate <= CURRENT_DATE)
-            AND (a.ExpireDate IS NULL OR a.ExpireDate >= CURRENT_DATE)
-        ");
-        $stmt->execute([$employeeId, $employeeId, $employeeId]);
-        $progressResult = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($progressResult) {
-            $progress = $progressResult;
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    COUNT(DISTINCT s.ID) as total_subjects,
+                    SUM(CASE WHEN 
+                        EXISTS (
+                            SELECT 1 
+                            FROM " . TBL_EXAM . " e 
+                            WHERE e.SubjectID = s.ID 
+                            AND e.EmployeeID = ? 
+                            AND e.Passed = 1
+                        )
+                        THEN 1 ELSE 0 
+                    END) as completed_subjects,
+                    (SELECT COUNT(*) 
+                     FROM " . TBL_CERTIFICATE . " c 
+                     WHERE c.EmployeeID = ? 
+                     AND c.Status = 1) as total_certificates
+                FROM " . TBL_SUBJECT . " s
+                INNER JOIN " . TBL_KNOWLEDGE_GROUP . " kg ON s.KnowledgeGroupID = kg.ID
+                INNER JOIN " . TBL_ASSIGN . " a ON kg.ID = a.KnowledgeGroupID
+                INNER JOIN " . TBL_POSITION . " p ON p.ID = a.PositionID
+                WHERE p.ID = (
+                    SELECT PositionID 
+                    FROM " . TBL_EMPLOYEE . "
+                    WHERE ID = ?
+                )
+                AND s.Status = 1
+                AND s.DeletedAt IS NULL
+                AND kg.Status = 1
+                AND a.Status = 1
+                AND (a.AssignDate <= CURRENT_DATE)
+                AND (a.ExpireDate IS NULL OR a.ExpireDate >= CURRENT_DATE)
+            ");
+            $stmt->execute([$employeeId, $employeeId, $employeeId]);
+            $progressResult = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($progressResult) {
+                $progress = [
+                    'total_subjects' => (int)($progressResult['total_subjects'] ?? 0),
+                    'completed_subjects' => (int)($progressResult['completed_subjects'] ?? 0),
+                    'total_certificates' => (int)($progressResult['total_certificates'] ?? 0)
+                ];
+            }
+        } catch (Exception $e) {
+            error_log('Lỗi lấy dữ liệu thanh bên: ' . $e->getMessage());
         }
 
-        $positionStmt = $this->db->prepare("
-            SELECT p.PositionName 
-            FROM " . TBL_EMPLOYEE . " e
-            LEFT JOIN " . TBL_POSITION . " p ON e.PositionID = p.ID 
-            WHERE e.ID = ?
-        ");
-        $positionStmt->execute([$employeeId]);
-        $position = $positionStmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $positionStmt = $this->db->prepare("
+                SELECT p.PositionName 
+                FROM " . TBL_EMPLOYEE . " e
+                LEFT JOIN " . TBL_POSITION . " p ON e.PositionID = p.ID 
+                WHERE e.ID = ?
+            ");
+            $positionStmt->execute([$employeeId]);
+            $position = $positionStmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log('Lỗi lấy vị trí: ' . $e->getMessage());
+            $position = ['PositionName' => 'Nhân viên'];
+        }
 
         return [
             'progress' => $progress,
@@ -402,9 +419,10 @@ class EmployeeController extends Controller {
     }
 
     /**
-     * Get employee full name helper
+     * Hàm trợ giúp lấy tên đầy đủ của nhân viên
      */
     private function getFullName($employee) {
         return trim($employee['FirstName'] . ' ' . $employee['LastName']);
     }
 }
+?>

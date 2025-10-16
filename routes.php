@@ -18,18 +18,19 @@ return [
     'GET /subjects' => 'SubjectController@index',
     'GET /subject/:id' => 'SubjectController@detail',
     
-    // Exams
+    // Exams - FIXED: Added GET route for exam page
     'GET /exam/:id' => 'ExamController@show',
-    'POST /exam/:id/start' => 'ExamController@start',
+    'GET /exam/:id/start' => 'ExamController@show',  // ADD THIS LINE - Shows exam page
+    'POST /exam/:id/start' => 'ExamController@start', // API to start exam
     'POST /exam/:id/submit' => 'ExamController@submit',
     'POST /exam/check-answer' => 'ExamController@checkAnswer',
     'GET /exam/:id/results' => 'ExamController@results',
     
-    // Certificates
+    // Certificates (Employee)
     'GET /certificates' => 'CertificateController@index',
-    'GET /certificate/:code' => 'CertificateController@show',
-    'GET /certificate/:code/download' => 'CertificateController@download',
-    'GET /certificate/:code/print' => 'CertificateController@printView',
+    'GET /certificates/:code' => 'CertificateController@show',
+    'GET /certificates/:code/download' => 'CertificateController@download',
+    'GET /certificates/:code/print' => 'CertificateController@printView',
     'GET /verify/:code' => 'CertificateController@verify',
     
     // Employee Profile
@@ -41,9 +42,52 @@ return [
     'GET /profile/history' => 'EmployeeController@learningHistory',
     'GET /profile/statistics' => 'EmployeeController@statistics',
     
+    // ========== ADMIN ROUTES ==========
+    
+    // Admin Dashboard
+    'GET /admin' => 'AdminDashboardController@index',
+    'GET /admin/dashboard' => 'AdminDashboardController@index',
+    
+    // Admin Certificate Management
+    'GET /admin/certificates' => 'AdminCertificateController@index',
+    'GET /admin/certificates/pending' => 'AdminCertificateController@pendingList',
+    'GET /admin/certificates/statistics' => 'AdminCertificateController@statistics',
+    'GET /admin/certificates/review/:id' => 'AdminCertificateController@reviewDetail',
+    'POST /admin/certificates/approve/:id' => 'AdminCertificateController@approve',
+    'POST /admin/certificates/reject' => 'AdminCertificateController@reject',
+    'POST /admin/certificates/revoke' => 'AdminCertificateController@revoke',
+    'POST /admin/certificates/restore/:id' => 'AdminCertificateController@restore',
+    'GET /admin/certificates/export' => 'AdminCertificateController@exportReport',
+    
+    // Admin Employee Management
+    'GET /admin/employees' => 'AdminEmployeeController@index',
+    'GET /admin/employees/:id' => 'AdminEmployeeController@show',
+    'GET /admin/employees/:id/progress' => 'AdminEmployeeController@progress',
+    
+    // Admin Subject Management
+    'GET /admin/subjects' => 'AdminSubjectController@index',
+    'GET /admin/subjects/create' => 'AdminSubjectController@createForm',
+    'POST /admin/subjects/create' => 'AdminSubjectController@create',
+    'GET /admin/subjects/:id/edit' => 'AdminSubjectController@editForm',
+    'POST /admin/subjects/:id/update' => 'AdminSubjectController@update',
+    'POST /admin/subjects/:id/delete' => 'AdminSubjectController@delete',
+    
+    // Admin Assignment Management
+    'GET /admin/assignments' => 'AdminAssignmentController@index',
+    'POST /admin/assignments/create' => 'AdminAssignmentController@create',
+    'POST /admin/assignments/delete' => 'AdminAssignmentController@delete',
+    
+    // Admin Reports
+    'GET /admin/reports' => 'AdminReportController@index',
+    'GET /admin/reports/completion' => 'AdminReportController@completion',
+    'GET /admin/reports/exams' => 'AdminReportController@exams',
+    'GET /admin/reports/certificates' => 'AdminReportController@certificates',
+    
     // API routes for AJAX
-    'POST /api/lesson/track' => 'SubjectController@trackProgress',
-    'POST /api/lesson/complete' => 'SubjectController@complete',
-    'GET /api/subject/:id/progress' => 'SubjectController@getProgress',
-    'GET /api/notifications' => 'NotificationsController@index',
+    'POST /subject/track' => 'SubjectController@trackProgress',
+    'POST /subject/complete' => 'SubjectController@complete',
+    'GET /subject/:id/progress' => 'SubjectController@getProgress',
+    'GET /notifications' => 'NotificationsController@index',
+    'POST /notifications/:id/read' => 'NotificationsController@markRead',
 ];
+?>

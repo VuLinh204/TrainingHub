@@ -17,7 +17,7 @@
 /* ===================================
    RESET & BASE
 =================================== */
-* {  
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -354,7 +354,6 @@ body.with-sidebar {
 =================================== */
 .dashboard-container {
     max-width: 1200px;
-    margin: 0 auto;
     padding: 20px;
 }
 
@@ -632,7 +631,7 @@ body.with-sidebar {
     position: relative;
 }
 
-.answer-option input[type="radio"] {
+.answer-option input[type='radio'] {
     position: absolute;
     opacity: 0;
     pointer-events: none;

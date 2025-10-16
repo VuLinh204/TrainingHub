@@ -1,25 +1,36 @@
 <?php
 require_once __DIR__ . '/../core/Controller.php';
+require_once __DIR__ . '/../models/EmployeeModel.php';
 require_once __DIR__ . '/../models/SubjectModel.php';
 require_once __DIR__ . '/../models/WatchLogModel.php';
 
 class SubjectController extends Controller {
+    private $employeeModel;
     private $subjectModel;
     private $watchLogModel;
 
     public function __construct() {
-        parent::__construct(); // IMPORTANT: Call parent constructor first
+        parent::__construct();
+        $this->employeeModel = new EmployeeModel();
         $this->subjectModel = new SubjectModel();
         $this->watchLogModel = new WatchLogModel();
     }
 
     public function index() {
         $employeeId = $this->checkAuth();
-        $subjects = $this->subjectModel->getAssignedSubjects($employeeId);
+        $employee = $this->employeeModel->findById($employeeId);
+
+        $subjects = $this->subjectModel->getAssignedSubjectsByKnowledgeGroup($employeeId);
+        
+        foreach ($subjects as &$subject) {
+            $subject['Name'] = $subject['Title'] ?? 'Khóa học';
+        }
+        unset($subject);
         
         $sidebarData = $this->getSidebarData($employeeId);
         
         $this->render('subject/list', [
+            'employee' => $employee,
             'subjects' => $subjects,
             'sidebarData' => $sidebarData,
             'pageTitle' => 'Danh sách khóa học'
@@ -28,6 +39,8 @@ class SubjectController extends Controller {
 
     public function detail($id) {
         $employeeId = $this->checkAuth();
+        $employee = $this->employeeModel->findById($employeeId);
+
         $subject = $this->subjectModel->getWithProgress($id, $employeeId);
         
         if (!$subject) {
@@ -36,71 +49,85 @@ class SubjectController extends Controller {
             return;
         }
 
+        // Lấy ExpireDate từ getAssignedSubjectsByKnowledgeGroup
+        $assignedSubjects = $this->subjectModel->getAssignedSubjectsByKnowledgeGroup($employeeId);
+        foreach ($assignedSubjects as $assigned) {
+            if ($assigned['ID'] == $id) {
+                $subject['ExpireDate'] = $assigned['ExpireDate'];
+                break;
+            }
+        }
+
+        // Lấy danh sách tài liệu
+        $stmt = $this->db->prepare("
+            SELECT Title, FileURL 
+            FROM tblTrain_Material 
+            WHERE SubjectID = ? AND Status = 1
+        ");
+        $stmt->execute([$id]);
+        $lessons = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $subject['Name'] = $subject['Title'] ?? 'Khóa học';
         $sidebarData = $this->getSidebarData($employeeId);
         
         $this->render('subject/detail', [
+            'employee' => $employee,
             'subject' => $subject,
+            'lessons' => $lessons,
             'pageTitle' => $subject['Title'] ?? 'Chi tiết khóa học',
             'sidebarData' => $sidebarData
         ]);
     }
 
     /**
-     * Track video progress (AJAX endpoint)
-     * FIXED: Added proper authentication and error handling
+     * Theo dõi tiến độ video (API endpoint)
      */
     public function trackProgress() {
-        // CRITICAL: Clean output buffer to prevent any extra output
         if (ob_get_level()) {
             ob_clean();
         }
         
-        // CRITICAL FIX: Check authentication first
         try {
             $employeeId = $this->checkAuth();
         } catch (Exception $e) {
             http_response_code(401);
             header('Content-Type: application/json');
-            echo json_encode(['error' => 'Unauthorized', 'message' => 'Please login']);
+            echo json_encode(['error' => 'Unauthorized', 'message' => 'Vui lòng đăng nhập']);
             exit;
         }
 
-        // Get POST data
         $data = $this->getPostJson();
         
-        // Validate required fields
         if (!isset($data['lesson_id']) || !isset($data['watched_seconds']) || !isset($data['event'])) {
             http_response_code(400);
             header('Content-Type: application/json');
             echo json_encode([
-                'error' => 'Missing required fields',
+                'error' => 'Thiếu các trường bắt buộc',
                 'required' => ['lesson_id', 'watched_seconds', 'event']
             ]);
             exit;
         }
 
-        // Validate data types
         $lessonId = filter_var($data['lesson_id'], FILTER_VALIDATE_INT);
         $watchedSeconds = filter_var($data['watched_seconds'], FILTER_VALIDATE_INT);
         
         if ($lessonId === false || $watchedSeconds === false) {
             http_response_code(400);
             header('Content-Type: application/json');
-            echo json_encode(['error' => 'Invalid data types']);
+            echo json_encode(['error' => 'Kiểu dữ liệu không hợp lệ']);
             exit;
         }
 
-        // Verify employee has access to this subject
+        // Kiểm tra quyền truy cập vào khóa học
         $subject = $this->subjectModel->getWithProgress($lessonId, $employeeId);
         if (!$subject) {
             http_response_code(403);
             header('Content-Type: application/json');
-            echo json_encode(['error' => 'Access denied to this subject']);
+            echo json_encode(['error' => 'Không có quyền truy cập vào khóa học này']);
             exit;
         }
 
         try {
-            // Log the watch progress
             $this->watchLogModel->logWatch(
                 $employeeId,
                 $lessonId,
@@ -109,7 +136,6 @@ class SubjectController extends Controller {
                 $data['event']
             );
 
-            // Return success with updated progress
             header('Content-Type: application/json');
             echo json_encode([
                 'status' => 'ok',
@@ -120,11 +146,11 @@ class SubjectController extends Controller {
             ]);
             exit;
         } catch (Exception $e) {
-            error_log('Track progress error: ' . $e->getMessage());
+            error_log('Lỗi theo dõi tiến độ: ' . $e->getMessage());
             http_response_code(500);
             header('Content-Type: application/json');
             echo json_encode([
-                'error' => 'Failed to track progress',
+                'error' => 'Không thể theo dõi tiến độ',
                 'message' => $e->getMessage()
             ]);
             exit;
@@ -132,8 +158,7 @@ class SubjectController extends Controller {
     }
 
     /**
-     * Mark lesson as complete (AJAX endpoint)
-     * FIXED: Added proper validation
+     * Đánh dấu khóa học hoàn thành (API endpoint)
      */
     public function complete() {
         try {
@@ -144,28 +169,25 @@ class SubjectController extends Controller {
         }
 
         $data = $this->getPostJson();
-        
         if (!isset($data['lesson_id'])) {
             http_response_code(400);
-            return $this->json(['error' => 'Missing lesson_id']);
+            return $this->json(['error' => 'Thiếu lesson_id']);
         }
 
         $lessonId = filter_var($data['lesson_id'], FILTER_VALIDATE_INT);
         if ($lessonId === false) {
             http_response_code(400);
-            return $this->json(['error' => 'Invalid lesson_id']);
+            return $this->json(['error' => 'lesson_id không hợp lệ']);
         }
 
-        // Get subject to check if exam required
-        $subject = $this->subjectModel->find($lessonId);
+        $subject = $this->subjectModel->getWithProgress($lessonId, $employeeId);
         if (!$subject) {
             http_response_code(404);
-            return $this->json(['error' => 'Subject not found']);
+            return $this->json(['error' => 'Không tìm thấy khóa học']);
         }
 
-        // Check if exam is required
+        // Kiểm tra xem có yêu cầu bài kiểm tra không
         $questionCount = $subject['QuestionCount'] ?? 0;
-        
         if ($questionCount > 0) {
             return $this->json([
                 'status' => 'exam_required',
@@ -174,7 +196,22 @@ class SubjectController extends Controller {
             ]);
         }
 
-        // No exam required, mark as complete
+        // Kiểm tra phần trăm xem video tối thiểu
+        $minWatchPercent = isset($subject['MinWatchPercent']) && $subject['MinWatchPercent'] > 0 
+            ? $subject['MinWatchPercent'] / 100 
+            : 0.9;
+        
+        if ($subject['Duration'] > 0 && $subject['watched_seconds'] / $subject['Duration'] < $minWatchPercent) {
+            http_response_code(400);
+            return $this->json([
+                'error' => 'Chưa xem đủ thời lượng video yêu cầu',
+                'required_percent' => $minWatchPercent * 100,
+                'current_percent' => $subject['Duration'] > 0 
+                    ? round(($subject['watched_seconds'] / $subject['Duration']) * 100, 2) 
+                    : 0
+            ]);
+        }
+
         try {
             $stmt = $this->db->prepare("
                 INSERT INTO " . TBL_COMPLETION . " 
@@ -184,23 +221,22 @@ class SubjectController extends Controller {
                 CompletedAt = NOW()
             ");
             $stmt->execute([$employeeId, $lessonId]);
-            
             return $this->json([
                 'status' => 'completed',
                 'message' => 'Đã đánh dấu hoàn thành khóa học'
             ]);
         } catch (Exception $e) {
-            error_log('Complete error: ' . $e->getMessage());
+            error_log('Lỗi đánh dấu hoàn thành: ' . $e->getMessage());
             http_response_code(500);
             return $this->json([
-                'error' => 'Failed to mark complete',
+                'error' => 'Không thể đánh dấu hoàn thành',
                 'message' => $e->getMessage()
             ]);
         }
     }
 
     /**
-     * Get subject progress (AJAX endpoint)
+     * Lấy tiến độ khóa học (API endpoint)
      */
     public function getProgress($id) {
         try {
@@ -213,14 +249,13 @@ class SubjectController extends Controller {
         $subjectId = filter_var($id, FILTER_VALIDATE_INT);
         if ($subjectId === false) {
             http_response_code(400);
-            return $this->json(['error' => 'Invalid subject ID']);
+            return $this->json(['error' => 'ID khóa học không hợp lệ']);
         }
 
         $subject = $this->subjectModel->getWithProgress($subjectId, $employeeId);
-        
         if (!$subject) {
             http_response_code(404);
-            return $this->json(['error' => 'Subject not found']);
+            return $this->json(['error' => 'Không tìm thấy khóa học']);
         }
 
         return $this->json([
@@ -230,13 +265,14 @@ class SubjectController extends Controller {
             'progress_percent' => $subject['Duration'] > 0 
                 ? round(($subject['watched_seconds'] / $subject['Duration']) * 100, 2) 
                 : 0,
+            'min_watch_percent' => $subject['MinWatchPercent'] ?? 90,
             'last_exam_score' => $subject['last_exam_score'] ?? null,
             'passed' => $subject['last_exam_passed'] ?? false
         ]);
     }
 
     /**
-     * Get sidebar data
+     * Lấy dữ liệu thanh bên
      */
     private function getSidebarData($employeeId) {
         $progress = [
@@ -265,7 +301,8 @@ class SubjectController extends Controller {
                      WHERE c.EmployeeID = ? 
                      AND c.Status = 1) as total_certificates
                 FROM " . TBL_SUBJECT . " s
-                INNER JOIN " . TBL_ASSIGN . " a ON s.ID = a.SubjectID
+                INNER JOIN " . TBL_KNOWLEDGE_GROUP . " kg ON s.KnowledgeGroupID = kg.ID
+                INNER JOIN " . TBL_ASSIGN . " a ON kg.ID = a.KnowledgeGroupID
                 INNER JOIN " . TBL_POSITION . " p ON p.ID = a.PositionID
                 WHERE p.ID = (
                     SELECT PositionID 
@@ -273,6 +310,9 @@ class SubjectController extends Controller {
                     WHERE ID = ?
                 )
                 AND s.Status = 1
+                AND s.DeletedAt IS NULL
+                AND kg.Status = 1
+                AND a.Status = 1
                 AND (a.AssignDate <= CURRENT_DATE)
                 AND (a.ExpireDate IS NULL OR a.ExpireDate >= CURRENT_DATE)
             ");
@@ -287,7 +327,7 @@ class SubjectController extends Controller {
                 ];
             }
         } catch (Exception $e) {
-            error_log('getSidebarData error: ' . $e->getMessage());
+            error_log('Lỗi lấy dữ liệu thanh bên: ' . $e->getMessage());
         }
 
         try {
@@ -300,7 +340,7 @@ class SubjectController extends Controller {
             $positionStmt->execute([$employeeId]);
             $position = $positionStmt->fetch(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            error_log('Get position error: ' . $e->getMessage());
+            error_log('Lỗi lấy vị trí: ' . $e->getMessage());
             $position = ['PositionName' => 'Nhân viên'];
         }
 
@@ -311,7 +351,7 @@ class SubjectController extends Controller {
     }
 
     /**
-     * Get exam questions (for legacy support)
+     * Lấy câu hỏi bài kiểm tra (hỗ trợ cũ)
      */
     public function getExamQuestions($id) {
         try {
@@ -324,3 +364,4 @@ class SubjectController extends Controller {
         return ['success' => true, 'questions' => $questions ?? []];
     }
 }
+?>

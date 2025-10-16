@@ -80,7 +80,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     // Skip API calls (always fetch from network for GET APIs)
-    if (request.url.includes('/api/')) {
+    if (request.url.includes('/')) {
         event.respondWith(
             fetch(request).catch(() => {
                 return new Response(

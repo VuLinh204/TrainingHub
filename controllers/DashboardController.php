@@ -17,27 +17,21 @@ class DashboardController extends Controller {
     }
     
     public function index() {
-        // Kiểm tra đăng nhập
         $employeeId = $this->checkAuth();
-        
-        // Lấy thông tin nhân viên
         $employee = $this->employeeModel->findById($employeeId);
         
-        // Lấy danh sách khóa học được phân công
-        $assignedSubjects = $this->employeeModel->getAssignedSubjects($employeeId);
+        $assignedSubjects = $this->subjectModel->getAssignedSubjectsByKnowledgeGroup($employeeId);
         
-        // Map thông tin thêm vào mỗi khóa học
         foreach ($assignedSubjects as &$subject) {
-            $subject['Name'] = $subject['Title'] ?? '';  // Use Title field for Name
-            $subject['is_completed'] = !empty($subject['BestScore']);
-            $subject['has_certificate'] = $this->employeeModel->hasCertificate($employeeId, $subject['ID']);
+            // Đảm bảo có field Name từ Title
+            $subject['Name'] = $subject['Title'] ?? 'Khóa học';
+            $subject['is_completed'] = !empty($subject['is_completed']);
+            $subject['has_certificate'] = !empty($subject['has_certificate']);
         }
-        unset($subject); // Break reference
-        
-        // Lấy danh sách khóa học đã hoàn thành
+        unset($subject);
+
+        $sidebarData = $this->getSidebarData($employeeId);
         $completedSubjects = $this->employeeModel->getCompletedSubjects($employeeId);
-        
-        // Lấy danh sách chứng chỉ
         $certificates = $this->employeeModel->getCertificates($employeeId);
         
         // Tính % hoàn thành
@@ -47,11 +41,90 @@ class DashboardController extends Controller {
         
         $this->render('dashboard/index', [
             'employee' => $employee,
+            'subjects' => $assignedSubjects,
             'assignedSubjects' => $assignedSubjects,
             'completedSubjects' => $completedSubjects,
             'certificates' => $certificates,
+            'sidebarData' => $sidebarData,
             'completionRate' => $completionRate,
             'baseUrl' => dirname($_SERVER['PHP_SELF'])
         ]);
     }
+
+    private function getSidebarData($employeeId) {
+        $progress = [
+            'total_subjects' => 0,
+            'completed_subjects' => 0,
+            'total_certificates' => 0
+        ];
+
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    COUNT(DISTINCT s.ID) as total_subjects,
+                    SUM(CASE WHEN 
+                        EXISTS (
+                            SELECT 1 
+                            FROM " . TBL_EXAM . " e 
+                            WHERE e.SubjectID = s.ID 
+                            AND e.EmployeeID = ? 
+                            AND e.Score >= s.RequiredScore 
+                            AND e.Passed = 1
+                        )
+                        THEN 1 ELSE 0 
+                    END) as completed_subjects,
+                    (SELECT COUNT(*) 
+                     FROM " . TBL_CERTIFICATE . " c 
+                     WHERE c.EmployeeID = ? 
+                     AND c.Status = 1) as total_certificates
+                FROM " . TBL_SUBJECT . " s
+                INNER JOIN " . TBL_KNOWLEDGE_GROUP . " kg ON s.KnowledgeGroupID = kg.ID
+                INNER JOIN " . TBL_ASSIGN . " a ON kg.ID = a.KnowledgeGroupID
+                INNER JOIN " . TBL_POSITION . " p ON p.ID = a.PositionID
+                WHERE p.ID = (
+                    SELECT PositionID 
+                    FROM " . TBL_EMPLOYEE . "
+                    WHERE ID = ?
+                )
+                AND s.Status = 1
+                AND s.DeletedAt IS NULL
+                AND kg.Status = 1
+                AND a.Status = 1
+                AND (a.AssignDate <= CURRENT_DATE)
+                AND (a.ExpireDate IS NULL OR a.ExpireDate >= CURRENT_DATE)
+            ");
+            $stmt->execute([$employeeId, $employeeId, $employeeId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result) {
+                $progress = [
+                    'total_subjects' => (int)($result['total_subjects'] ?? 0),
+                    'completed_subjects' => (int)($result['completed_subjects'] ?? 0),
+                    'total_certificates' => (int)($result['total_certificates'] ?? 0)
+                ];
+            }
+        } catch (Exception $e) {
+            error_log('Lỗi lấy dữ liệu thanh bên: ' . $e->getMessage());
+        }
+
+        try {
+            $positionStmt = $this->db->prepare("
+                SELECT p.PositionName 
+                FROM " . TBL_EMPLOYEE . " e
+                LEFT JOIN " . TBL_POSITION . " p ON e.PositionID = p.ID 
+                WHERE e.ID = ?
+            ");
+            $positionStmt->execute([$employeeId]);
+            $position = $positionStmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log('Lỗi lấy vị trí: ' . $e->getMessage());
+            $position = ['PositionName' => 'Nhân viên'];
+        }
+
+        return [
+            'progress' => $progress,
+            'position' => $position['PositionName'] ?? 'Nhân viên'
+        ];
+    }
 }
+?>

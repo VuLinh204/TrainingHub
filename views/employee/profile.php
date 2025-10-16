@@ -151,7 +151,7 @@
                                     Mã: <?= htmlspecialchars($cert['CertificateCode']) ?>
                                 </p>
                             </div>
-                            <a href="<?= BASE_URL ?>/certificate/<?= $cert['CertificateCode'] ?>" class="certificate-view">
+                            <a href="<?= BASE_URL ?>/certificates/<?= $cert['CertificateCode'] ?>" class="certificate-view">
                                 <i class="fas fa-eye"></i>
                             </a>
                         </div>

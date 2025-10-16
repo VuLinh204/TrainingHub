@@ -1,5 +1,5 @@
 <?php
-// Giả sử $assignedSubjects và BASE_URL đã được định nghĩa ở nơi khác
+    $assignedSubjects = $subjects ?? [];
 ?>
 <div class="dashboard-container">
     <h1>Khóa học của bạn</h1>

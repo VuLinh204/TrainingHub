@@ -1,6 +1,6 @@
 /*
     Complete Training Platform JavaScript
-    Includes all event handlers and functionality
+    Main orchestrator - delegates to modular components
 */
 
 (function () {
@@ -23,195 +23,11 @@
         currentExamId: null,
         selectedAnswers: new Map(),
         isSubmitting: false,
-        sidebarOpen: false,
     };
 
-    // Utilities
-    function qs(selector, root = document) {
-        return root.querySelector(selector);
-    }
-
-    function qsa(selector, root = document) {
-        return Array.from(root.querySelectorAll(selector));
-    }
-
-    function showToast(message, type = 'info') {
-        const toast = document.createElement('div');
-        toast.className = `training-toast ${type}`;
-        toast.innerHTML = `
-            <i class="fas fa-${getToastIcon(type)}"></i>
-            <span>${escapeHtml(message)}</span>
-        `;
-        document.body.appendChild(toast);
-
-        requestAnimationFrame(() => {
-            toast.classList.add('visible');
-        });
-
-        setTimeout(() => {
-            toast.classList.remove('visible');
-            setTimeout(() => toast.remove(), 300);
-        }, 3500);
-    }
-
-    function getToastIcon(type) {
-        const icons = {
-            success: 'check-circle',
-            error: 'exclamation-circle',
-            warning: 'exclamation-triangle',
-            info: 'info-circle',
-        };
-        return icons[type] || icons.info;
-    }
-
-    function showLoading() {
-        let loader = qs('.page-loader');
-        if (!loader) {
-            loader = document.createElement('div');
-            loader.className = 'page-loader';
-            loader.innerHTML = '<div class="loading-spinner"></div>';
-            document.body.appendChild(loader);
-        }
-        loader.style.display = 'flex';
-    }
-
-    function hideLoading() {
-        const loader = qs('.page-loader');
-        if (loader) {
-            loader.style.display = 'none';
-        }
-    }
-
-    async function apiRequest(url, options = {}) {
-        try {
-            const response = await fetch(CONFIG.apiBase + url, {
-                ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    ...options.headers,
-                },
-            });
-
-            // Clone response để có thể đọc body nhiều lần nếu cần
-            const responseClone = response.clone();
-
-            if (!response.ok) {
-                const errorText = await responseClone.text();
-                throw new Error(`HTTP ${response.status}: ${errorText}`);
-            }
-
-            // Log raw response nếu cần (sử dụng clone)
-            const text = await responseClone.text();
-            console.log('[API RAW RESPONSE]', text);
-
-            // Xử lý trường hợp response bị ghép hai JSON objects (ví dụ: {"status":"ok"}{"success":true})
-            let jsonStr = text.trim();
-            if (jsonStr.includes('}{')) {
-                // Lấy phần JSON cuối cùng
-                const parts = jsonStr.split('}{');
-                jsonStr = '{' + parts.pop();
-            }
-
-            // Kiểm tra nếu không phải JSON hợp lệ (ví dụ: HTML error)
-            if (!jsonStr.startsWith('{')) {
-                throw new Error(`Invalid JSON response: Response starts with "${jsonStr.substring(0, 50)}..."`);
-            }
-
-            // Parse JSON từ chuỗi đã xử lý
-            return JSON.parse(jsonStr);
-        } catch (error) {
-            console.error('API request failed:', error);
-            throw error;
-        }
-    }
-
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    /* ===================================
-       SIDEBAR TOGGLE
-    =================================== */
-    function initSidebarToggle() {
-        const menuToggle = qs('.menu-toggle');
-        const sidebar = qs('.sidebar');
-
-        if (!menuToggle || !sidebar) return;
-
-        menuToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            state.sidebarOpen = !state.sidebarOpen;
-            document.body.classList.toggle('sidebar-open', state.sidebarOpen);
-        });
-
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', (e) => {
-            if (state.sidebarOpen && !sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
-                state.sidebarOpen = false;
-                document.body.classList.remove('sidebar-open');
-            }
-        });
-
-        // Close sidebar on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && state.sidebarOpen) {
-                state.sidebarOpen = false;
-                document.body.classList.remove('sidebar-open');
-            }
-        });
-
-        // Handle window resize
-        let resizeTimer;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                if (window.innerWidth > 1024) {
-                    state.sidebarOpen = false;
-                    document.body.classList.remove('sidebar-open');
-                }
-            }, 250);
-        });
-    }
-
-    /* ===================================
-       DROPDOWN MENUS
-    =================================== */
-    function initDropdowns() {
-        qsa('.dropdown-toggle').forEach((toggle) => {
-            toggle.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const dropdown = toggle.closest('.dropdown');
-                const isActive = dropdown.classList.contains('active');
-
-                // Close all other dropdowns
-                qsa('.dropdown.active').forEach((d) => {
-                    if (d !== dropdown) {
-                        d.classList.remove('active');
-                    }
-                });
-
-                // Toggle current dropdown
-                dropdown.classList.toggle('active', !isActive);
-            });
-        });
-
-        // Close dropdowns on outside click
-        document.addEventListener('click', () => {
-            qsa('.dropdown.active').forEach((d) => d.classList.remove('active'));
-        });
-
-        // Close on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                qsa('.dropdown.active').forEach((d) => d.classList.remove('active'));
-            }
-        });
-    }
+    // Shorthand helpers (kept minimal)
+    const qs = UIUtils.qs;
+    const qsa = UIUtils.qsa;
 
     /* ===================================
        VIDEO TRACKING
@@ -226,13 +42,13 @@
                 return;
             }
 
-            let realWatched = 0; // Thời gian xem thực tế (play time)
-            let lastUpdateTime = Date.now(); // Timestamp cho delta time
-            let lastCurrentTime = 0; // Theo dõi currentTime để detect seek
+            let realWatched = 0;
+            let lastUpdateTime = Date.now();
+            let lastCurrentTime = 0;
             let playing = false;
             let heartbeatTimer = null;
             let failedHeartbeats = 0;
-            const maxDeltaPerUpdate = 2000; // Ngưỡng delta (ms) để detect seek (2s)
+            const maxDeltaPerUpdate = 2000;
 
             video.addEventListener('loadedmetadata', () => {
                 console.log('Video loaded:', {
@@ -245,7 +61,7 @@
 
             video.addEventListener('play', () => {
                 playing = true;
-                lastUpdateTime = Date.now(); // Reset timestamp khi play
+                lastUpdateTime = Date.now();
                 startHeartbeat();
             });
 
@@ -253,10 +69,9 @@
                 playing = false;
                 stopHeartbeat();
                 sendHeartbeat('pause');
-                // Cộng delta cuối cùng khi pause
                 const delta = Date.now() - lastUpdateTime;
                 if (delta < maxDeltaPerUpdate) {
-                    realWatched += delta / 1000; // Chuyển sang giây
+                    realWatched += delta / 1000;
                 }
             });
 
@@ -264,47 +79,36 @@
                 if (!playing) return;
 
                 const now = Date.now();
-                const deltaTime = now - lastUpdateTime; // Delta thời gian thực (ms)
-                const currentTime = video.currentTime * 1000; // currentTime sang ms
-                const timeDiff = currentTime - lastCurrentTime * 1000; // Diff vị trí video
+                const deltaTime = now - lastUpdateTime;
+                const currentTime = video.currentTime * 1000;
+                const timeDiff = currentTime - lastCurrentTime * 1000;
 
-                // Detect seek: Nếu delta vị trí > delta thời gian thực + ngưỡng, coi như seek
                 if (timeDiff > deltaTime + maxDeltaPerUpdate) {
                     console.log('Seek detected, ignoring jump');
-                    // Không cộng vào realWatched, chỉ reset lastCurrentTime
                     lastCurrentTime = video.currentTime;
                 } else {
-                    // Bình thường: Cộng delta thời gian thực
                     realWatched += deltaTime / 1000;
                 }
 
                 lastUpdateTime = now;
                 lastCurrentTime = video.currentTime;
 
-                // Update progress bar dựa trên realWatched
                 updateProgressBar(video, realWatched);
 
-                // Check completion dựa trên realWatched
                 if (video.duration && realWatched >= CONFIG.minWatchPercentToComplete * video.duration) {
                     markLessonCompleted(lessonId, video);
                 }
             });
 
-            video.addEventListener('seeking', () => {
-                // Optional: Giới hạn seek nếu cần, nhưng không ảnh hưởng realWatched
-                console.log('Seeking to:', video.currentTime);
-            });
-
             video.addEventListener('seeked', () => {
-                lastCurrentTime = video.currentTime; // Update sau seek hợp lệ
+                lastCurrentTime = video.currentTime;
                 if (playing) {
-                    lastUpdateTime = Date.now(); // Reset timestamp
+                    lastUpdateTime = Date.now();
                 }
             });
 
             video.addEventListener('ended', () => {
                 playing = false;
-                // Cộng delta cuối
                 const delta = Date.now() - lastUpdateTime;
                 if (delta < maxDeltaPerUpdate) {
                     realWatched += delta / 1000;
@@ -316,7 +120,7 @@
 
             video.addEventListener('error', (e) => {
                 console.error('Video error:', e);
-                showToast('Lỗi tải video. Vui lòng thử lại.', 'error');
+                UIUtils.showToast('Lỗi tải video. Vui lòng thử lại.', 'error');
             });
 
             function startHeartbeat() {
@@ -336,14 +140,14 @@
             async function sendHeartbeat(eventName) {
                 const payload = {
                     lesson_id: lessonId,
-                    watched_seconds: Math.floor(realWatched), // Gửi realWatched lên server
+                    watched_seconds: Math.floor(realWatched),
                     duration: Math.floor(video.duration || 0),
                     current_time: Math.floor(video.currentTime),
                     event: eventName,
                 };
 
                 try {
-                    await apiRequest('/api/lesson/track', {
+                    await apiRequest('/lesson/track', {
                         method: 'POST',
                         body: JSON.stringify(payload),
                     });
@@ -353,7 +157,7 @@
                     console.warn('Heartbeat failed', failedHeartbeats, e);
 
                     if (failedHeartbeats >= 3) {
-                        showToast('Mất kết nối. Tiến độ có thể không được lưu.', 'warning');
+                        UIUtils.showToast('Mất kết nối. Tiến độ có thể không được lưu.', 'warning');
                     }
                 }
             }
@@ -385,27 +189,27 @@
                 btn.textContent = 'Đánh dấu hoàn thành';
             }
 
-            showToast('Bạn đã xem đủ video để làm bài kiểm tra!', 'success');
+            UIUtils.showToast('Bạn đã xem đủ video để làm bài kiểm tra!', 'success');
         }
     }
 
     async function completeLesson(lessonId) {
         try {
-            showLoading();
-            const result = await apiRequest('/api/lesson/complete', {
+            UIUtils.showLoading();
+            const result = await apiRequest('/lesson/complete', {
                 method: 'POST',
                 body: JSON.stringify({ lesson_id: lessonId }),
             });
 
-            hideLoading();
+            UIUtils.hideLoading();
 
             if (result.status === 'completed') {
-                showToast('Chúc mừng! Bạn đã hoàn thành khóa học.', 'success');
+                UIUtils.showToast('Chúc mừng! Bạn đã hoàn thành khóa học.', 'success');
                 setTimeout(() => window.location.reload(), 2000);
             }
         } catch (e) {
-            hideLoading();
-            showToast('Không thể hoàn thành. Vui lòng thử lại.', 'error');
+            UIUtils.hideLoading();
+            UIUtils.showToast('Không thể hoàn thành. Vui lòng thử lại.', 'error');
         }
     }
 
@@ -421,7 +225,6 @@
             radio.addEventListener('change', (ev) => {
                 const label = ev.target.closest('.answer-option');
                 if (label) {
-                    // Trigger onAnswerSelect từ label
                     onAnswerSelect({ currentTarget: label, preventDefault: () => {} });
                 }
             });
@@ -435,11 +238,8 @@
 
         if (!answerId || !questionId) return;
 
-        // Prevent double-click
         if (el.classList.contains('selected')) return;
 
-        // Clear previous selections for this question
-        // SỬA: Selector match template
         qsa(`.answer-option[data-question-id="${questionId}"]`).forEach((a) => {
             a.classList.remove('selected', 'correct', 'incorrect');
         });
@@ -447,19 +247,16 @@
         el.classList.add('selected');
         state.selectedAnswers.set(questionId, answerId);
 
-        // Visual feedback
         el.style.transform = 'scale(0.98)';
         setTimeout(() => {
             el.style.transform = '';
         }, 150);
 
-        // Update submit button state
         updateSubmitButton();
     }
 
     function updateSubmitButton() {
         const submitBtn = qs('.exam-form button[type="submit"]');
-        // SỬA: Selector từ '.question' → '.question-card' (match template)
         const totalQuestions = qsa('.question-card').length;
 
         if (submitBtn) {
@@ -480,12 +277,10 @@
        EXAM FLOW
     =================================== */
     function initExamHandlers() {
-        // Replace handler
         qsa('.take-exam-btn').forEach((btn) => {
             btn.addEventListener('click', handleExamStartOverride);
         });
 
-        // Complete lesson button
         qsa('.complete-btn').forEach((btn) => {
             btn.addEventListener('click', (e) => {
                 const lessonId = e.currentTarget.dataset.subjectId;
@@ -500,9 +295,10 @@
         ev.preventDefault();
         const btn = ev.currentTarget;
         const subjectId = btn.dataset.subjectId;
+        console.log(subjectId);
 
         if (!subjectId) {
-            showToast('Lỗi: Không tìm thấy thông tin khóa học', 'error');
+            UIUtils.showToast('Lỗi: Không tìm thấy thông tin khóa học', 'error');
             return;
         }
 
@@ -511,7 +307,7 @@
         }
 
         try {
-            showLoading();
+            UIUtils.showLoading();
             const result = await apiRequest(`/exam/${subjectId}/start`, {
                 method: 'POST',
                 body: JSON.stringify({ subject_id: subjectId }),
@@ -522,11 +318,10 @@
             }
 
             state.currentExamId = result.exam_id;
+            renderExam(result.questions, result.time_limit);
+            history.pushState({}, '', `/Training/exam/${subjectId}/start`);
 
-            console.log('Questions from backend (no extra transform):', result.questions);
-
-            renderExam(result.questions, result.time_limit); // ← SỬA: Pass result.questions trực tiếp
-            hideLoading();
+            UIUtils.hideLoading();
 
             const videoContainer = qs('.video-container');
             const examContainer = qs('.exam-container');
@@ -541,8 +336,12 @@
                 startExamTimer(result.time_limit);
             }
         } catch (e) {
-            hideLoading();
-            showToast('Không thể bắt đầu bài kiểm tra. ' + e.message, 'error');
+            UIUtils.hideLoading();
+            if (e.message.includes('HTTP 403') && e.message.includes('Bạn đã vượt qua bài kiểm tra này')) {
+                UIUtils.showToast('Bạn đã vượt qua bài kiểm tra này và không thể làm lại.', 'info');
+            } else {
+                UIUtils.showToast('Không thể bắt đầu bài kiểm tra: ' + e.message, 'error');
+            }
             console.error('Exam start error:', e);
         }
     }
@@ -554,7 +353,6 @@
         examForm.setAttribute('data-exam-id', state.currentExamId);
         examForm.innerHTML = '';
 
-        // Add timer if exists
         let timerHTML = '';
         if (timeLimit) {
             timerHTML = `
@@ -568,11 +366,11 @@
         const questionsHTML = questions
             .map(
                 (q, index) => `
-                    <div class="question-card">  <!-- Thêm class để match CSS nếu cần -->
+                    <div class="question-card">
                         <div class="question-header">
                             <span class="question-number">Câu ${index + 1}</span>
                         </div>
-                        <h4 class="question-text">${escapeHtml(q.QuestionText)}</h4>
+                        <h4 class="question-text">${UIUtils.escapeHtml(q.QuestionText)}</h4>
                         <div class="answers">
                             ${q.answers
                                 .map(
@@ -583,7 +381,7 @@
                                         <input type="radio" 
                                             name="question_${q.ID}"
                                             value="${a.id}">
-                                        <span class="answer-text">${escapeHtml(a.text)}</span>
+                                        <span class="answer-text">${UIUtils.escapeHtml(a.text)}</span>
                                     </label>
                                 `
                                 )
@@ -608,10 +406,7 @@
             </div>
         `;
 
-        // Re-init MCQ handlers
         initMCQ();
-
-        // Add submit handler
         examForm.addEventListener('submit', handleExamSubmit);
     }
 
@@ -619,7 +414,7 @@
         const timerEl = qs('.timer-display');
         if (!timerEl) return;
 
-        let timeRemaining = minutes * 60; // Convert to seconds
+        let timeRemaining = minutes * 60;
 
         const timerInterval = setInterval(() => {
             timeRemaining--;
@@ -628,24 +423,20 @@
             const secs = timeRemaining % 60;
             timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
 
-            // Warning at 5 minutes
             if (timeRemaining === 300) {
-                showToast('Còn 5 phút!', 'warning');
+                UIUtils.showToast('Còn 5 phút!', 'warning');
                 timerEl.closest('.exam-timer').classList.add('warning');
             }
 
-            // Warning at 1 minute
             if (timeRemaining === 60) {
-                showToast('Còn 1 phút!', 'warning');
+                UIUtils.showToast('Còn 1 phút!', 'warning');
                 timerEl.closest('.exam-timer').classList.add('danger');
             }
 
-            // Time's up
             if (timeRemaining <= 0) {
                 clearInterval(timerInterval);
-                showToast('Hết giờ! Tự động nộp bài.', 'error');
+                UIUtils.showToast('Hết giờ! Tự động nộp bài.', 'error');
 
-                // Auto submit
                 const examForm = qs('.exam-form');
                 if (examForm) {
                     handleExamSubmit({ preventDefault: () => {}, currentTarget: examForm });
@@ -664,20 +455,18 @@
         const examId = examForm.dataset.examId;
         const subjectId = qs('[data-subject-id]')?.dataset.subjectId;
 
-        // Collect answers
         const answers = Array.from(state.selectedAnswers.entries()).map(([qId, aId]) => ({
             question_id: qId,
             answer_id: aId,
         }));
 
-        // Final confirmation
         if (!confirm(`Bạn đã trả lời ${answers.length} câu hỏi. Bạn có chắc chắn muốn nộp bài?`)) {
             state.isSubmitting = false;
             return;
         }
 
         try {
-            showLoading();
+            UIUtils.showLoading();
             const result = await apiRequest(`/exam/${subjectId}/submit`, {
                 method: 'POST',
                 body: JSON.stringify({
@@ -686,7 +475,7 @@
                 }),
             });
 
-            hideLoading();
+            UIUtils.hideLoading();
 
             if (!result.success) {
                 throw new Error(result.error || 'Submit failed');
@@ -694,8 +483,8 @@
 
             showExamResult(result);
         } catch (e) {
-            hideLoading();
-            showToast('Không thể nộp bài. ' + e.message, 'error');
+            UIUtils.hideLoading();
+            UIUtils.showToast('Không thể nộp bài: ' + e.message, 'error');
             console.error('Exam submit error:', e);
         } finally {
             state.isSubmitting = false;
@@ -707,6 +496,7 @@
         const score = data.correct_answers || 0;
         const total = data.total_questions || 0;
         const percentage = data.percentage || 0;
+        const subjectId = qs('[data-subject-id]')?.dataset.subjectId;
 
         const overlay = document.createElement('div');
         overlay.className = 'exam-result-overlay';
@@ -744,7 +534,6 @@
             overlay.style.opacity = '1';
         });
 
-        // Handle buttons
         if (passed) {
             const certBtn = qs('.btn-certificate', overlay);
             certBtn.addEventListener('click', () => {
@@ -753,7 +542,7 @@
         } else {
             const retryBtn = qs('.btn-retry', overlay);
             retryBtn.addEventListener('click', () => {
-                window.location.reload();
+                window.location.href = `${CONFIG.apiBase}/exam/${subjectId}/start`;
             });
         }
 
@@ -761,6 +550,19 @@
         closeBtn.addEventListener('click', () => {
             window.location.href = CONFIG.apiBase + '/dashboard';
         });
+
+        // Vô hiệu hóa nút "Làm lại" nếu đã vượt qua
+        if (passed) {
+            const retryBtn = qs('.btn-retry', overlay);
+            if (retryBtn) {
+                retryBtn.disabled = true;
+                retryBtn.classList.add('disabled');
+                retryBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    UIUtils.showToast('Bạn đã vượt qua bài kiểm tra này và không thể làm lại.', 'info');
+                });
+            }
+        }
     }
 
     /* ===================================
@@ -772,7 +574,6 @@
 
         if (!searchForm || !searchInput) return;
 
-        // Debounce search
         let searchTimeout;
         searchInput.addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
@@ -795,7 +596,6 @@
     }
 
     async function performSearch(query) {
-        // Implement live search results if needed
         console.log('Searching for:', query);
     }
 
@@ -810,12 +610,11 @@
                 if (invalidInputs.length > 0) {
                     e.preventDefault();
                     invalidInputs[0].focus();
-                    showToast('Vui lòng điền đầy đủ thông tin bắt buộc', 'warning');
+                    UIUtils.showToast('Vui lòng điền đầy đủ thông tin bắt buộc', 'warning');
                 }
             });
         });
 
-        // Real-time validation feedback
         qsa('input[required], textarea[required], select[required]').forEach((input) => {
             input.addEventListener('blur', () => {
                 if (!input.validity.valid) {
@@ -841,7 +640,6 @@
 
         if (!notificationBtn) return;
 
-        // Load notifications on click
         notificationBtn.addEventListener('click', async () => {
             const dropdown = notificationBtn.closest('.dropdown');
             const menu = qs('.dropdown-menu', dropdown);
@@ -852,7 +650,7 @@
                 menu.innerHTML = '<div class="dropdown-loading">Đang tải...</div>';
 
                 try {
-                    const notifications = await apiRequest('/api/notifications');
+                    const notifications = await apiRequest('/notifications');
                     if (notifications.success) {
                         renderNotifications(menu, notifications.notifications);
                     } else {
@@ -879,7 +677,7 @@
             <a href="${CONFIG.apiBase}${n.link}" class="notification-item ${n.read ? '' : 'unread'}">
                 <i class="fas fa-${n.icon}"></i>
                 <div class="notification-content">
-                    <div class="notification-title">${escapeHtml(n.title)}</div>
+                    <div class="notification-title">${UIUtils.escapeHtml(n.title)}</div>
                     <div class="notification-time">${n.time}</div>
                 </div>
             </a>
@@ -892,35 +690,10 @@
     }
 
     /* ===================================
-       KEYBOARD SHORTCUTS
-    =================================== */
-    function initKeyboardShortcuts() {
-        document.addEventListener('keydown', (e) => {
-            // Ctrl/Cmd + K: Focus search
-            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-                e.preventDefault();
-                const searchInput = qs('.search-form input');
-                if (searchInput) {
-                    searchInput.focus();
-                    searchInput.select();
-                }
-            }
-
-            // Escape: Close modals/dropdowns
-            if (e.key === 'Escape') {
-                qsa('.dropdown.active').forEach((d) => d.classList.remove('active'));
-                qsa('.modal.active').forEach((m) => m.classList.remove('active'));
-            }
-        });
-    }
-
-    /* ===================================
        PROGRESS TRACKING
     =================================== */
     function initProgressTracking() {
         updateProgressDisplay();
-
-        // Update every minute
         setInterval(updateProgressDisplay, 60000);
     }
 
@@ -930,127 +703,8 @@
         progressBars.forEach((bar) => {
             const targetWidth = bar.style.width;
             if (targetWidth) {
-                animateProgress(bar, targetWidth);
+                UIUtils.animateProgress(bar, targetWidth);
             }
-        });
-    }
-
-    function animateProgress(element, targetWidth) {
-        const target = parseFloat(targetWidth);
-        let current = 0;
-        const increment = target / 50;
-
-        const animation = setInterval(() => {
-            current += increment;
-            if (current >= target) {
-                element.style.width = target + '%';
-                clearInterval(animation);
-            } else {
-                element.style.width = current + '%';
-            }
-        }, 20);
-    }
-
-    /* ===================================
-       LAZY LOADING IMAGES
-    =================================== */
-    function initLazyLoading() {
-        if ('IntersectionObserver' in window) {
-            const imageObserver = new IntersectionObserver((entries, observer) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        const img = entry.target;
-                        const src = img.dataset.src;
-
-                        if (src) {
-                            img.src = src;
-                            img.removeAttribute('data-src');
-                            observer.unobserve(img);
-                        }
-                    }
-                });
-            });
-
-            qsa('img[data-src]').forEach((img) => {
-                imageObserver.observe(img);
-            });
-        } else {
-            // Fallback for browsers without IntersectionObserver
-            qsa('img[data-src]').forEach((img) => {
-                img.src = img.dataset.src;
-                img.removeAttribute('data-src');
-            });
-        }
-    }
-
-    /* ===================================
-       SCROLL TO TOP BUTTON
-    =================================== */
-    function initScrollToTop() {
-        let scrollBtn = qs('.scroll-to-top');
-
-        if (!scrollBtn) {
-            scrollBtn = document.createElement('button');
-            scrollBtn.className = 'scroll-to-top';
-            scrollBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
-            scrollBtn.setAttribute('aria-label', 'Scroll to top');
-            document.body.appendChild(scrollBtn);
-        }
-
-        window.addEventListener('scroll', () => {
-            if (window.pageYOffset > 300) {
-                scrollBtn.classList.add('visible');
-            } else {
-                scrollBtn.classList.remove('visible');
-            }
-        });
-
-        scrollBtn.addEventListener('click', () => {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth',
-            });
-        });
-    }
-
-    /* ===================================
-       COPY TO CLIPBOARD
-    =================================== */
-    function initCopyButtons() {
-        qsa('[data-copy]').forEach((btn) => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const textToCopy = btn.dataset.copy || btn.textContent;
-
-                try {
-                    await navigator.clipboard.writeText(textToCopy);
-                    showToast('Đã sao chép vào clipboard', 'success');
-
-                    // Visual feedback
-                    const originalHTML = btn.innerHTML;
-                    btn.innerHTML = '<i class="fas fa-check"></i> Đã sao chép';
-                    setTimeout(() => {
-                        btn.innerHTML = originalHTML;
-                    }, 2000);
-                } catch (e) {
-                    showToast('Không thể sao chép', 'error');
-                }
-            });
-        });
-    }
-
-    /* ===================================
-       CONFIRM DIALOGS
-    =================================== */
-    function initConfirmDialogs() {
-        qsa('[data-confirm]').forEach((element) => {
-            element.addEventListener('click', (e) => {
-                const message = element.dataset.confirm || 'Bạn có chắc chắn?';
-                if (!confirm(message)) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-            });
         });
     }
 
@@ -1061,10 +715,8 @@
         qsa('form[data-autosave]').forEach((form) => {
             const formId = form.dataset.autosave;
 
-            // Load saved data
             loadFormData(form, formId);
 
-            // Save on change
             let saveTimeout;
             form.addEventListener('input', () => {
                 clearTimeout(saveTimeout);
@@ -1073,7 +725,6 @@
                 }, 1000);
             });
 
-            // Clear on submit
             form.addEventListener('submit', () => {
                 clearFormData(formId);
             });
@@ -1125,45 +776,6 @@
     }
 
     /* ===================================
-       TOOLTIP INITIALIZATION
-    =================================== */
-    function initTooltips() {
-        qsa('[data-tooltip]').forEach((element) => {
-            element.addEventListener('mouseenter', (e) => {
-                const tooltip = document.createElement('div');
-                tooltip.className = 'tooltip';
-                tooltip.textContent = element.dataset.tooltip;
-                document.body.appendChild(tooltip);
-
-                const rect = element.getBoundingClientRect();
-                tooltip.style.top = rect.top - tooltip.offsetHeight - 8 + 'px';
-                tooltip.style.left = rect.left + (rect.width - tooltip.offsetWidth) / 2 + 'px';
-
-                element.addEventListener(
-                    'mouseleave',
-                    () => {
-                        tooltip.remove();
-                    },
-                    { once: true }
-                );
-            });
-        });
-    }
-
-    /* ===================================
-       OFFLINE DETECTION
-    =================================== */
-    function initOfflineDetection() {
-        window.addEventListener('online', () => {
-            showToast('Đã kết nối lại internet', 'success');
-        });
-
-        window.addEventListener('offline', () => {
-            showToast('Mất kết nối internet. Một số chức năng có thể không hoạt động.', 'warning');
-        });
-    }
-
-    /* ===================================
        PWA INSTALL PROMPT
     =================================== */
     function initPWAInstall() {
@@ -1173,7 +785,6 @@
             e.preventDefault();
             deferredPrompt = e;
 
-            // Show install button if exists
             const installBtn = qs('.pwa-install-btn');
             if (installBtn) {
                 installBtn.style.display = 'block';
@@ -1192,7 +803,7 @@
         });
 
         window.addEventListener('appinstalled', () => {
-            showToast('Ứng dụng đã được cài đặt thành công!', 'success');
+            UIUtils.showToast('Ứng dụng đã được cài đặt thành công!', 'success');
             deferredPrompt = null;
         });
     }
@@ -1203,43 +814,72 @@
     function initErrorTracking() {
         window.addEventListener('error', (e) => {
             console.error('Global error:', e.error);
-            // Send to error tracking service if needed
         });
 
         window.addEventListener('unhandledrejection', (e) => {
             console.error('Unhandled promise rejection:', e.reason);
-            // Send to error tracking service if needed
         });
+    }
+
+    /* ===================================
+       API REQUEST HELPER
+    =================================== */
+    async function apiRequest(url, options = {}) {
+        try {
+            console.log(CONFIG.apiBase + url);
+            const response = await fetch(CONFIG.apiBase + url, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...options.headers,
+                },
+            });
+
+            const responseClone = response.clone();
+
+            if (!response.ok) {
+                const errorText = await responseClone.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const text = await responseClone.text();
+            console.log('[API RAW RESPONSE]', text);
+
+            let jsonStr = text.trim();
+            if (jsonStr.includes('}{')) {
+                const parts = jsonStr.split('}{');
+                jsonStr = '{' + parts.pop();
+            }
+
+            if (!jsonStr.startsWith('{')) {
+                throw new Error(`Invalid JSON response: Response starts with "${jsonStr.substring(0, 50)}..."`);
+            }
+
+            return JSON.parse(jsonStr);
+        } catch (error) {
+            console.error('API request failed:', error);
+            throw error;
+        }
     }
 
     /* ===================================
        INITIALIZE ALL
     =================================== */
     function initAll() {
-        console.log('Initializing Training Platform...');
+        // Initialize modular components
+        UIUtils.init();
+        TabsModule.init();
 
-        // Core functionality
-        initSidebarToggle();
-        initDropdowns();
+        // Platform-specific logic
         initVideoTracking();
         initExamHandlers();
         initMCQ();
-
-        // UI enhancements
         initSearch();
         initFormValidation();
         initNotifications();
-        initKeyboardShortcuts();
         initProgressTracking();
-        initLazyLoading();
-        initScrollToTop();
-        initCopyButtons();
-        initConfirmDialogs();
         initAutoSave();
-        initTooltips();
-
-        // System features
-        initOfflineDetection();
         initPWAInstall();
         initErrorTracking();
 
@@ -1257,9 +897,9 @@
 
     // Expose some functions globally for external use
     window.TrainingPlatform = {
-        showToast,
-        showLoading,
-        hideLoading,
+        showToast: UIUtils.showToast,
+        showLoading: UIUtils.showLoading,
+        hideLoading: UIUtils.hideLoading,
         apiRequest,
     };
 })();

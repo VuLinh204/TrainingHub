@@ -3,7 +3,7 @@
  * Common UI functions: sidebar, dropdown, scroll-to-top, etc.
  */
 
-const UIUtils = (function() {
+const UIUtils = (function () {
     'use strict';
 
     /**
@@ -28,21 +28,19 @@ const UIUtils = (function() {
         const body = document.body;
 
         if (menuToggle) {
-            menuToggle.addEventListener('click', function() {
+            menuToggle.addEventListener('click', function () {
                 body.classList.toggle('sidebar-open');
             });
 
             // Close sidebar when clicking outside
-            document.addEventListener('click', function(e) {
-                if (body.classList.contains('sidebar-open') &&
-                    !e.target.closest('.sidebar') &&
-                    !e.target.closest('.menu-toggle')) {
+            document.addEventListener('click', function (e) {
+                if (body.classList.contains('sidebar-open') && !e.target.closest('.sidebar') && !e.target.closest('.menu-toggle')) {
                     body.classList.remove('sidebar-open');
                 }
             });
 
             // Close sidebar on escape key
-            document.addEventListener('keydown', function(e) {
+            document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape' && body.classList.contains('sidebar-open')) {
                     body.classList.remove('sidebar-open');
                 }
@@ -56,10 +54,10 @@ const UIUtils = (function() {
     function initDropdowns() {
         const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
 
-        dropdownToggles.forEach(toggle => {
-            toggle.addEventListener('click', function(e) {
+        dropdownToggles.forEach((toggle) => {
+            toggle.addEventListener('click', function (e) {
                 e.stopPropagation();
-                
+
                 const dropdown = this.closest('.dropdown');
                 const isActive = dropdown.classList.contains('active');
 
@@ -74,14 +72,14 @@ const UIUtils = (function() {
         });
 
         // Close dropdowns when clicking outside
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', function (e) {
             if (!e.target.closest('.dropdown')) {
                 closeAllDropdowns();
             }
         });
 
         // Close on escape key
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
                 closeAllDropdowns();
             }
@@ -92,7 +90,7 @@ const UIUtils = (function() {
      * Close all dropdown menus
      */
     function closeAllDropdowns() {
-        document.querySelectorAll('.dropdown.active').forEach(dropdown => {
+        document.querySelectorAll('.dropdown.active').forEach((dropdown) => {
             dropdown.classList.remove('active');
         });
     }
@@ -102,7 +100,7 @@ const UIUtils = (function() {
      */
     function initScrollToTop() {
         const scrollBtn = document.querySelector('.scroll-to-top');
-        
+
         if (!scrollBtn) {
             // Create scroll to top button if it doesn't exist
             const btn = document.createElement('button');
@@ -115,7 +113,7 @@ const UIUtils = (function() {
         const button = document.querySelector('.scroll-to-top');
 
         // Show/hide button based on scroll position
-        window.addEventListener('scroll', function() {
+        window.addEventListener('scroll', function () {
             if (window.pageYOffset > 300) {
                 button.classList.add('visible');
             } else {
@@ -124,10 +122,10 @@ const UIUtils = (function() {
         });
 
         // Scroll to top on click
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             window.scrollTo({
                 top: 0,
-                behavior: 'smooth'
+                behavior: 'smooth',
             });
         });
     }
@@ -137,11 +135,11 @@ const UIUtils = (function() {
      */
     function initPageLoader() {
         const loader = document.querySelector('.page-loader');
-        
+
         if (!loader) return;
 
         // Hide loader when page is fully loaded
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             loader.style.display = 'none';
         });
     }
@@ -151,13 +149,13 @@ const UIUtils = (function() {
      */
     function initTooltips() {
         const elements = document.querySelectorAll('[data-tooltip]');
-        
-        elements.forEach(element => {
-            element.addEventListener('mouseenter', function(e) {
+
+        elements.forEach((element) => {
+            element.addEventListener('mouseenter', function (e) {
                 showTooltip(this, this.getAttribute('data-tooltip'));
             });
 
-            element.addEventListener('mouseleave', function() {
+            element.addEventListener('mouseleave', function () {
                 hideTooltip();
             });
         });
@@ -177,7 +175,7 @@ const UIUtils = (function() {
         document.body.appendChild(tooltip);
 
         const rect = element.getBoundingClientRect();
-        tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
+        tooltip.style.left = rect.left + rect.width / 2 - tooltip.offsetWidth / 2 + 'px';
         tooltip.style.top = rect.top - tooltip.offsetHeight - 10 + 'px';
     }
 
@@ -197,28 +195,28 @@ const UIUtils = (function() {
     function showToast(message, type = 'info', duration = 3500) {
         const toast = document.createElement('div');
         toast.className = `training-toast ${type}`;
-        
+
         const iconMap = {
             success: 'fa-check-circle',
             error: 'fa-exclamation-circle',
             warning: 'fa-exclamation-triangle',
-            info: 'fa-info-circle'
+            info: 'fa-info-circle',
         };
-        
+
         const icon = iconMap[type] || iconMap.info;
-        
+
         toast.innerHTML = `
             <i class="fas ${icon}"></i>
             <span>${escapeHtml(message)}</span>
         `;
-        
+
         document.body.appendChild(toast);
-        
+
         // Trigger animation
         requestAnimationFrame(() => {
             toast.classList.add('visible');
         });
-        
+
         // Auto remove
         setTimeout(() => {
             toast.classList.remove('visible');
@@ -231,14 +229,14 @@ const UIUtils = (function() {
      */
     function showLoading() {
         let loader = document.querySelector('.page-loader');
-        
+
         if (!loader) {
             loader = document.createElement('div');
             loader.className = 'page-loader';
             loader.innerHTML = '<div class="loading-spinner"></div>';
             document.body.appendChild(loader);
         }
-        
+
         loader.style.display = 'flex';
     }
 
@@ -270,7 +268,8 @@ const UIUtils = (function() {
      */
     function copyToClipboard(text) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text)
+            navigator.clipboard
+                .writeText(text)
                 .then(() => {
                     showToast('Đã sao chép vào clipboard', 'success');
                 })
@@ -292,14 +291,14 @@ const UIUtils = (function() {
         textArea.style.left = '-9999px';
         document.body.appendChild(textArea);
         textArea.select();
-        
+
         try {
             document.execCommand('copy');
             showToast('Đã sao chép vào clipboard', 'success');
         } catch (err) {
             showToast('Không thể sao chép', 'error');
         }
-        
+
         document.body.removeChild(textArea);
     }
 
@@ -323,11 +322,11 @@ const UIUtils = (function() {
      */
     function throttle(func, limit) {
         let inThrottle;
-        return function(...args) {
+        return function (...args) {
             if (!inThrottle) {
                 func.apply(this, args);
                 inThrottle = true;
-                setTimeout(() => inThrottle = false, limit);
+                setTimeout(() => (inThrottle = false), limit);
             }
         };
     }
@@ -348,19 +347,14 @@ const UIUtils = (function() {
         if (!(date instanceof Date)) {
             date = new Date(date);
         }
-        
+
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
         const hours = String(date.getHours()).padStart(2, '0');
         const minutes = String(date.getMinutes()).padStart(2, '0');
-        
-        return format
-            .replace('DD', day)
-            .replace('MM', month)
-            .replace('YYYY', year)
-            .replace('HH', hours)
-            .replace('mm', minutes);
+
+        return format.replace('DD', day).replace('MM', month).replace('YYYY', year).replace('HH', hours).replace('mm', minutes);
     }
 
     /**
@@ -392,11 +386,11 @@ const UIUtils = (function() {
     function initLazyLoading() {
         if ('IntersectionObserver' in window) {
             const imageObserver = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
+                entries.forEach((entry) => {
                     if (entry.isIntersecting) {
                         const img = entry.target;
                         const src = img.dataset.src;
-                        
+
                         if (src) {
                             img.src = src;
                             img.removeAttribute('data-src');
@@ -406,12 +400,12 @@ const UIUtils = (function() {
                 });
             });
 
-            qsa('img[data-src]').forEach(img => {
+            qsa('img[data-src]').forEach((img) => {
                 imageObserver.observe(img);
             });
         } else {
             // Fallback
-            qsa('img[data-src]').forEach(img => {
+            qsa('img[data-src]').forEach((img) => {
                 img.src = img.dataset.src;
                 img.removeAttribute('data-src');
             });
@@ -422,7 +416,7 @@ const UIUtils = (function() {
      * Initialize keyboard shortcuts
      */
     function initKeyboardShortcuts() {
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             // Ctrl/Cmd + K: Focus search
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
@@ -436,7 +430,7 @@ const UIUtils = (function() {
             // Escape: Close modals/dropdowns
             if (e.key === 'Escape') {
                 closeAllDropdowns();
-                qsa('.modal.active').forEach(m => m.classList.remove('active'));
+                qsa('.modal.active').forEach((m) => m.classList.remove('active'));
             }
         });
     }
@@ -445,11 +439,11 @@ const UIUtils = (function() {
      * Initialize offline detection
      */
     function initOfflineDetection() {
-        window.addEventListener('online', function() {
+        window.addEventListener('online', function () {
             showToast('Đã kết nối lại internet', 'success');
         });
 
-        window.addEventListener('offline', function() {
+        window.addEventListener('offline', function () {
             showToast('Mất kết nối internet. Một số chức năng có thể không hoạt động.', 'warning');
         });
     }
@@ -480,14 +474,14 @@ const UIUtils = (function() {
         if (typeof element === 'string') {
             element = document.querySelector(element);
         }
-        
+
         if (!element) return;
-        
+
         const top = element.getBoundingClientRect().top + window.pageYOffset - offset;
-        
+
         window.scrollTo({
             top: top,
-            behavior: 'smooth'
+            behavior: 'smooth',
         });
     }
 
@@ -527,8 +521,8 @@ const UIUtils = (function() {
      * Initialize confirm dialogs
      */
     function initConfirmDialogs() {
-        qsa('[data-confirm]').forEach(element => {
-            element.addEventListener('click', function(e) {
+        qsa('[data-confirm]').forEach((element) => {
+            element.addEventListener('click', function (e) {
                 const message = element.dataset.confirm || 'Bạn có chắc chắn?';
                 if (!window.confirm(message)) {
                     e.preventDefault();
@@ -542,15 +536,15 @@ const UIUtils = (function() {
      * Initialize copy buttons
      */
     function initCopyButtons() {
-        qsa('[data-copy]').forEach(btn => {
-            btn.addEventListener('click', async function(e) {
+        qsa('[data-copy]').forEach((btn) => {
+            btn.addEventListener('click', async function (e) {
                 e.preventDefault();
                 const textToCopy = btn.dataset.copy || btn.textContent;
-                
+
                 try {
                     await navigator.clipboard.writeText(textToCopy);
                     showToast('Đã sao chép vào clipboard', 'success');
-                    
+
                     // Visual feedback
                     const originalHTML = btn.innerHTML;
                     btn.innerHTML = '<i class="fas fa-check"></i> Đã sao chép';
@@ -593,7 +587,7 @@ const UIUtils = (function() {
         setUrlParameter: setUrlParameter,
         closeAllDropdowns: closeAllDropdowns,
         showTooltip: showTooltip,
-        hideTooltip: hideTooltip
+        hideTooltip: hideTooltip,
     };
 })();
 

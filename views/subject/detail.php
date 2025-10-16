@@ -1,5 +1,5 @@
 <?php
-// views/subject/detail.php — FINAL BEAUTIFUL VERSION (logic cũ + UI mới + màu chi tiết)
+// subject/detail.php
 if (!isset($subject) || empty($subject)) {
     echo '<div class="alert alert-danger">Khóa học không tồn tại.</div>';
     return;
@@ -11,7 +11,7 @@ $duration = (int)($subject['Duration'] ?? 0);
 $watched = (int)($subject['watched_seconds'] ?? 0);
 $progressPercent = $duration > 0 ? min(100, round(($watched / $duration) * 100, 2)) : 0;
 
-$minWatchPercent = $subject['MinWatchPercent'] ?? 0.9;
+$minWatchPercent = ($subject['MinWatchPercent'] ?? 90) / 100;
 $canTakeExam = $duration > 0 && $watched >= ($duration * $minWatchPercent);
 $questionCount = (int)($subject['QuestionCount'] ?? 0);
 ?>
@@ -20,7 +20,7 @@ $questionCount = (int)($subject['QuestionCount'] ?? 0);
     <div class="subject-header-modern">
         <h1><?= htmlspecialchars($subject['Title'] ?? 'Khóa học') ?></h1>
         <div class="subject-meta">
-            <div class="meta-item"><i class="fas fa-clock"></i> <?= floor($duration / 60) ?> phút</div>
+            <div class="meta-item"><i class="fas fa-clock"></i> <?= floor($duration / 60) ?> phút : <?= str_pad($duration % 60, 2, '0', STR_PAD_LEFT) ?> giây</div>
             <div class="meta-item"><i class="fas fa-percentage"></i> Tiến độ: <?= $progressPercent ?>%</div>
         </div>
     </div>
@@ -270,7 +270,7 @@ if (video) {
         const now = Math.floor(video.currentTime);
         if (now - lastSent < 5) return;
         lastSent = now;
-        fetch('<?= $baseUrl ?>/subject/trackProgress', {
+        fetch('<?= $baseUrl ?>/subject/track', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({

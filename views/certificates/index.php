@@ -17,21 +17,9 @@
         --transition: all 0.2s ease;
     }
 
-    body {
-        background-color: var(--background-color);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        color: var(--text-primary);
-    }
-
     .main-content {
         margin-left: 0; /* Assuming sidebar is handled in layout */
         padding: 2rem 0;
-    }
-
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 1rem;
     }
 
     .page-header {
@@ -322,13 +310,13 @@
                             </div>
                         </div>
                         <div class="actions">
-                            <a href="/certificate/<?php echo urlencode($cert['CertificateCode']); ?>" class="action-btn btn-view">
+                            <a href="/certificates/<?php echo urlencode($cert['CertificateCode']); ?>" class="action-btn btn-view">
                                 <i class="fas fa-eye"></i> Xem
                             </a>
-                            <a href="/certificate/print/<?php echo urlencode($cert['CertificateCode']); ?>" target="_blank" class="action-btn btn-print">
+                            <a href="/certificates/print/<?php echo urlencode($cert['CertificateCode']); ?>" target="_blank" class="action-btn btn-print">
                                 <i class="fas fa-print"></i> In
                             </a>
-                            <a href="/certificate/download/<?php echo urlencode($cert['CertificateCode']); ?>" class="action-btn btn-download">
+                            <a href="/certificates/download/<?php echo urlencode($cert['CertificateCode']); ?>" class="action-btn btn-download">
                                 <i class="fas fa-download"></i> Tải
                             </a>
                         </div>

@@ -4,9 +4,6 @@ require_once __DIR__ . '/../core/Model.php';
 class ExamModel extends Model {
     protected $table = 'tblTrain_Exam';
     
-    /**
-     * Start a new exam
-     */
     public function startExam($employeeId, $subjectId) {
         try {
             return $this->create([
@@ -23,9 +20,6 @@ class ExamModel extends Model {
         }
     }
 
-    /**
-     * Get exam questions with shuffled answers
-     */
     public function getExamQuestions($subjectId) {
         try {
             $sql = "SELECT q.ID, q.QuestionText, q.QuestionType, q.Score
@@ -39,7 +33,6 @@ class ExamModel extends Model {
                 throw new Exception("No questions found for subject ID: $subjectId");
             }
             
-            // Get answers for each question and shuffle them
             foreach ($questions as &$question) {
                 $answerSql = "SELECT ID, AnswerText 
                              FROM tblTrain_Answer 
@@ -61,9 +54,6 @@ class ExamModel extends Model {
         }
     }
 
-    /**
-     * Check if answer is correct
-     */
     public function checkAnswerCorrectness($questionId, $answerId) {
         try {
             $sql = "SELECT IsCorrect FROM tblTrain_Answer 
@@ -72,57 +62,71 @@ class ExamModel extends Model {
             return !empty($result) && $result[0]['IsCorrect'] == 1;
         } catch (Exception $e) {
             error_log("checkAnswerCorrectness error: " . $e->getMessage());
-            return false;  // Fallback to false on error
+            return false;
         }
     }
 
-    /**
-     * Submit exam and calculate results
-     */
     public function submitExam($examId, $answers) {
         try {
-            // Get exam info
             $exam = $this->find($examId);
             if (!$exam) {
                 throw new Exception("Exam not found: $examId");
             }
 
-            // Get subject info
-            $subjectSql = "SELECT RequiredScore FROM tblTrain_Subject WHERE ID = ?";
+            $subjectSql = "SELECT RequiredScore, MinCorrectAnswers FROM tblTrain_Subject WHERE ID = ?";
             $subjectResult = $this->query($subjectSql, [$exam['SubjectID']]);
             if (empty($subjectResult)) {
                 throw new Exception("Subject not found: " . $exam['SubjectID']);
             }
             $subject = $subjectResult[0];
-            
-            // Get all questions for this subject
-            $questionsSql = "SELECT COUNT(*) as total FROM tblTrain_Question 
-                            WHERE SubjectID = ? AND Status = 1";
-            $totalResult = $this->query($questionsSql, [$exam['SubjectID']]);
-            $totalQuestions = $totalResult[0]['total'];
 
-            // Process answers
+            // Sử dụng số câu hỏi thực tế từ $answers
+            $totalQuestions = count($answers);
+
+            // Kiểm tra tính hợp lệ của answers
+            $questionIds = $this->query("SELECT ID FROM tblTrain_Question WHERE SubjectID = ? AND Status = 1", [$exam['SubjectID']]);
+            $questionIds = array_column($questionIds, 'ID');
+            foreach ($answers as $answer) {
+                if (!in_array($answer['question_id'], $questionIds)) {
+                    throw new Exception("Invalid question_id: " . $answer['question_id']);
+                }
+                $answerCheck = $this->query("SELECT 1 FROM tblTrain_Answer WHERE ID = ? AND QuestionID = ?", 
+                    [$answer['answer_id'], $answer['question_id']]);
+                if (empty($answerCheck)) {
+                    throw new Exception("Invalid answer_id: " . $answer['answer_id'] . " for question_id: " . $answer['question_id']);
+                }
+            }
+
             $correctCount = 0;
             foreach ($answers as $answer) {
                 $isCorrect = $this->checkAnswerCorrectness(
                     $answer['question_id'], 
                     $answer['answer_id']
                 );
-                
-                // Save answer detail
                 $this->saveExamDetail($examId, $answer['question_id'], $answer['answer_id'], $isCorrect);
-                
                 if ($isCorrect) $correctCount++;
             }
 
-            // Calculate score (percentage)
-            $score = $totalQuestions > 0 ? ($correctCount / $totalQuestions) * 100 : 0;
-            $passed = $score >= $subject['RequiredScore'];
+            $score = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
 
-            // Update exam record
+            // Kiểm tra điểm số trước đó
+            $previousExamSql = "SELECT Score FROM tblTrain_Exam 
+                                WHERE EmployeeID = ? AND SubjectID = ? AND Status = 'completed' 
+                                ORDER BY Score DESC LIMIT 1";
+            $previousExam = $this->query($previousExamSql, [$exam['EmployeeID'], $exam['SubjectID']]);
+            $previousScore = !empty($previousExam) ? $previousExam[0]['Score'] : 0;
+
+            $passed = $this->determinePassed(
+                $correctCount, 
+                $totalQuestions, 
+                $score,
+                $subject['MinCorrectAnswers'],
+                $subject['RequiredScore']
+            );
+
             $updateData = [
                 'EndTime' => date('Y-m-d H:i:s'),
-                'Score' => $score,
+                'Score' => max($score, $previousScore), // Lưu điểm cao nhất
                 'TotalQuestions' => $totalQuestions,
                 'CorrectAnswers' => $correctCount,
                 'Status' => 'completed',
@@ -130,7 +134,6 @@ class ExamModel extends Model {
             ];
             $this->update($this->table, $updateData, 'ID = ?', [$examId]);
 
-            // If passed, create completion record and certificate
             if ($passed) {
                 $completionModel = new CompletionModel();
                 $completionModel->markComplete(
@@ -141,19 +144,25 @@ class ExamModel extends Model {
                     $examId
                 );
 
-                $certificateModel = new CertificateModel();
-                $certificateModel->generateCertificate(
-                    $exam['EmployeeID'], 
-                    $exam['SubjectID']
-                );
+                try {
+                    $certificateModel = new CertificateModel();
+                    $certificateModel->generateCertificate(
+                        $exam['EmployeeID'], 
+                        $exam['SubjectID']
+                    );
+                } catch (Exception $e) {
+                    error_log("Failed to generate certificate for EmployeeID={$exam['EmployeeID']}, SubjectID={$exam['SubjectID']}: " . $e->getMessage());
+                }
             }
 
             return [
+                'success' => true,
                 'passed' => $passed,
                 'score' => $score,
                 'correct_count' => $correctCount,
                 'total_questions' => $totalQuestions,
-                'required' => $subject['RequiredScore']
+                'required_percentage' => $subject['RequiredScore'],
+                'required_correct_count' => $subject['MinCorrectAnswers']
             ];
         } catch (Exception $e) {
             error_log("submitExam error: " . $e->getMessage() . " for exam $examId");
@@ -161,9 +170,13 @@ class ExamModel extends Model {
         }
     }
 
-    /**
-     * Save exam detail (question answer)
-     */
+    private function determinePassed($correctCount, $totalQuestions, $scorePercentage, $minCorrectAnswers, $requiredScore) {
+        if ($minCorrectAnswers > 0) {
+            return $correctCount >= $minCorrectAnswers;
+        }
+        return $scorePercentage >= $requiredScore;
+    }
+
     private function saveExamDetail($examId, $questionId, $answerId, $isCorrect) {
         try {
             $sql = "INSERT INTO tblTrain_ExamDetail 
@@ -171,19 +184,15 @@ class ExamModel extends Model {
                     VALUES (?, ?, ?, ?, NOW())";
             return $this->execute($sql, [$examId, $questionId, $answerId, $isCorrect ? 1 : 0]);
         } catch (Exception $e) {
-            error_log("saveExamDetail error: " . $e->getMessage());
-            return false;
+            error_log("saveExamDetail error: " . $e->getMessage() . " for ExamID=$examId, QuestionID=$questionId, AnswerID=$answerId");
+            throw new Exception("Failed to save exam detail: " . $e->getMessage());
         }
     }
 
-    /**
-     * Check if employee can take exam
-     */
     public function canTakeExam($employeeId, $subjectId) {
         try {
-            // Check if subject has questions
             $questionCountSql = "SELECT COUNT(*) as total FROM tblTrain_Question 
-                                 WHERE SubjectID = ? AND Status = 1";
+                                WHERE SubjectID = ? AND Status = 1";
             $questionCount = $this->query($questionCountSql, [$subjectId])[0]['total'];
 
             if ($questionCount == 0) {
@@ -193,23 +202,9 @@ class ExamModel extends Model {
                 ];
             }
 
-            // Check if already passed
-            $passedExamSql = "SELECT 1 FROM tblTrain_Exam 
-                              WHERE EmployeeID = ? AND SubjectID = ? AND Passed = 1 
-                              LIMIT 1";
-            $passedExam = $this->query($passedExamSql, [$employeeId, $subjectId]);
-
-            if (!empty($passedExam)) {
-                return [
-                    'allowed' => false,
-                    'message' => 'Bạn đã vượt qua bài kiểm tra này'
-                ];
-            }
-
-            // Check number of attempts today
             $attemptsTodaySql = "SELECT COUNT(*) as total FROM tblTrain_Exam 
-                                 WHERE EmployeeID = ? AND SubjectID = ? 
-                                 AND DATE(StartTime) = CURDATE()";
+                                WHERE EmployeeID = ? AND SubjectID = ? 
+                                AND DATE(StartTime) = CURDATE()";
             $attemptsToday = $this->query($attemptsTodaySql, [$employeeId, $subjectId])[0]['total'];
 
             if ($attemptsToday >= 999) {
@@ -232,9 +227,6 @@ class ExamModel extends Model {
         }
     }
 
-    /**
-     * Get exam attempts
-     */
     public function getAttempts($employeeId, $subjectId) {
         try {
             $sql = "SELECT * FROM {$this->table}
@@ -248,12 +240,9 @@ class ExamModel extends Model {
         }
     }
 
-    /**
-     * Get exam with details
-     */
     public function getExamWithDetails($examId, $employeeId) {
         try {
-            $sql = "SELECT e.*, s.Title as SubjectName, s.RequiredScore
+            $sql = "SELECT e.*, s.Title as SubjectName, s.RequiredScore, s.MinCorrectAnswers
                     FROM {$this->table} e
                     JOIN tblTrain_Subject s ON e.SubjectID = s.ID
                     WHERE e.ID = ? AND e.EmployeeID = ?";
@@ -266,9 +255,6 @@ class ExamModel extends Model {
         }
     }
 
-    /**
-     * Get exam details (questions and answers)
-     */
     public function getExamDetails($examId) {
         try {
             $sql = "SELECT ed.*, 
@@ -289,3 +275,4 @@ class ExamModel extends Model {
         }
     }
 }
+?>

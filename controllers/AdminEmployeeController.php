@@ -25,13 +25,14 @@ class AdminEmployeeController extends Controller {
      */
     private function checkAdminAuth() {
         $employeeId = $this->checkAuth();
+        
         $employee = $this->employeeModel->findById($employeeId);
         
         // Dựa theo Role, không phụ thuộc vào ID chức danh
-        if (empty($employee) || ($employee['Role'] ?? '') !== 'admin') {
+        if (!isset($employee['Role']) || $employee['Role'] !== 'admin') {
             http_response_code(403);
             $this->render('error/403', [
-                'message' => 'Bạn không có quyền truy cập trang quản trị'
+                'message' => 'Bạn không có quyền truy cập trang này'
             ]);
             exit;
         }

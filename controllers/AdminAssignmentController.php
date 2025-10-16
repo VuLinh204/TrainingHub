@@ -24,9 +24,11 @@ class AdminAssignmentController extends Controller {
         $employeeId = $this->checkAuth();
         $employee = $this->employeeModel->findById($employeeId);
         
-        if (!in_array($employee['PositionID'], [5, 6])) {
+        f (!isset($employee['Role']) || $employee['Role'] !== 'admin') {
             http_response_code(403);
-            $this->render('error/403');
+            $this->render('error/403', [
+                'message' => 'Bạn không có quyền truy cập trang này'
+            ]);
             exit;
         }
         

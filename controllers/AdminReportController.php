@@ -27,12 +27,14 @@ class AdminReportController extends Controller {
      * Kiểm tra quyền admin
      */
     private function checkAdminAuth() {
-        $employeeId = $this->checkAuth();
+        $employeeId = $this->checkAuth(); 
         $employee = $this->employeeModel->findById($employeeId);
         
-        if (!in_array($employee['PositionID'], [5, 6])) {
+        if (!isset($employee['Role']) || $employee['Role'] !== 'admin') {
             http_response_code(403);
-            $this->render('error/403');
+            $this->render('error/403', [
+                'message' => 'Bạn không có quyền truy cập trang này'
+            ]);
             exit;
         }
         
@@ -63,7 +65,7 @@ class AdminReportController extends Controller {
         $admin = $this->employeeModel->findById($adminId);
         $sidebarData = $this->getAdminSidebarData($adminId);
         
-        $this->render('admin/report/index', [
+        $this->render('admin/reports/index', [
             'overview' => $overview,
             'byDepartment' => $byDepartment,
             'bySubject' => $bySubject,
@@ -97,7 +99,7 @@ class AdminReportController extends Controller {
         $admin = $this->employeeModel->findById($adminId);
         $sidebarData = $this->getAdminSidebarData($adminId);
         
-        $this->render('admin/report/completion', [
+        $this->render('admin/reports/completion', [
             'completionByDept' => $completionByDept,
             'completionBySubject' => $completionBySubject,
             'employeeDetails' => $employeeDetails,
@@ -133,7 +135,7 @@ class AdminReportController extends Controller {
         $admin = $this->employeeModel->findById($adminId);
         $sidebarData = $this->getAdminSidebarData($adminId);
         
-        $this->render('admin/report/exams', [
+        $this->render('admin/reports/exams', [
             'examStats' => $examStats,
             'scoreDistribution' => $scoreDistribution,
             'examsBySubject' => $examsBySubject,
@@ -170,7 +172,7 @@ class AdminReportController extends Controller {
         $admin = $this->employeeModel->findById($adminId);
         $sidebarData = $this->getAdminSidebarData($adminId);
         
-        $this->render('admin/report/certificates', [
+        $this->render('admin/reports/certificates', [
             'certStats' => $certStats,
             'certsByDept' => $certsByDept,
             'certsBySubject' => $certsBySubject,

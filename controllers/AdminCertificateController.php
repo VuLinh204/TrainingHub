@@ -30,7 +30,7 @@ class AdminCertificateController extends Controller {
         $employee = $this->employeeModel->findById($employeeId);
         
         // Kiểm tra PositionID (giả sử 5 là quản lý, 6 là admin)
-        if (!in_array($employee['PositionID'], [5, 6])) {
+        if (!isset($employee['Role']) || $employee['Role'] !== 'admin') {
             http_response_code(403);
             $this->render('error/403', [
                 'message' => 'Bạn không có quyền truy cập trang này'

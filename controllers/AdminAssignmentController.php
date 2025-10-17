@@ -24,7 +24,7 @@ class AdminAssignmentController extends Controller {
         $employeeId = $this->checkAuth();
         $employee = $this->employeeModel->findById($employeeId);
         
-        f (!isset($employee['Role']) || $employee['Role'] !== 'admin') {
+        if (!isset($employee['Role']) || $employee['Role'] !== 'admin') {
             http_response_code(403);
             $this->render('error/403', [
                 'message' => 'Bạn không có quyền truy cập trang này'
@@ -171,37 +171,36 @@ class AdminAssignmentController extends Controller {
     private function getAssignments($positionFilter, $subjectFilter) {
         $where = [];
         $params = [];
-        
+
         if (!empty($positionFilter)) {
             $where[] = "a.PositionID = ?";
             $params[] = $positionFilter;
         }
-        
+
         if (!empty($subjectFilter)) {
-            $where[] = "a.SubjectID = ?";
+            $where[] = "s.KnowledgeGroupID = ?";
             $params[] = $subjectFilter;
         }
-        
+
         $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
-        
+
         $sql = "SELECT a.*,
                 p.PositionName,
-                s.Title as SubjectName,
+                kg.Name as SubjectName,
                 s.Duration,
-                s.PassingScore,
-                CONCAT(e.FirstName, ' ', e.LastName) as AssignedByName,
+                CONCAT(emp.FirstName, ' ', emp.LastName) as AssignedByName,
                 COUNT(DISTINCT emp.ID) as affected_employees,
                 COUNT(DISTINCT ex.EmployeeID) as completed_count
-                FROM tblTrain_Assign a
-                JOIN tblTrain_Position p ON a.PositionID = p.ID
-                JOIN tblTrain_Subject s ON a.SubjectID = s.ID
-                LEFT JOIN tblTrain_Employee e ON a.AssignedBy = e.ID
-                LEFT JOIN tblTrain_Employee emp ON emp.PositionID = a.PositionID AND emp.Status = 1
-                LEFT JOIN tblTrain_Exam ex ON (ex.SubjectID = a.SubjectID AND ex.EmployeeID = emp.ID AND ex.Passed = 1)
-                {$whereClause}
-                GROUP BY a.ID
-                ORDER BY a.AssignedAt DESC";
-        
+            FROM tblTrain_Assign a
+            JOIN tblTrain_Position p ON a.PositionID = p.ID
+            JOIN tblTrain_KnowledgeGroup kg ON a.KnowledgeGroupID = kg.ID
+            JOIN tblTrain_Subject s ON s.KnowledgeGroupID = kg.ID AND s.Status = 1
+            LEFT JOIN tblTrain_Employee emp ON emp.PositionID = a.PositionID AND emp.Status = 1
+            LEFT JOIN tblTrain_Exam ex ON ex.SubjectID = s.ID AND ex.EmployeeID = emp.ID AND ex.Passed = 1
+            {$whereClause}
+            GROUP BY a.ID, kg.ID
+            ORDER BY a.AssignDate DESC";
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -234,12 +233,12 @@ class AdminAssignmentController extends Controller {
         $sql = "SELECT 
                 COUNT(*) as total_assignments,
                 COUNT(DISTINCT PositionID) as total_positions,
-                COUNT(DISTINCT SubjectID) as total_subjects,
+                COUNT(DISTINCT KnowledgeGroupID) as total_subjects,  -- <== sửa đây
                 SUM(CASE WHEN IsRequired = 1 THEN 1 ELSE 0 END) as required_count,
                 (SELECT COUNT(DISTINCT e.ID) 
-                 FROM tblTrain_Employee e 
-                 INNER JOIN tblTrain_Assign a ON e.PositionID = a.PositionID 
-                 WHERE e.Status = 1) as affected_employees
+                FROM tblTrain_Employee e 
+                INNER JOIN tblTrain_Assign a ON e.PositionID = a.PositionID 
+                WHERE e.Status = 1) as affected_employees
                 FROM tblTrain_Assign";
         
         $stmt = $this->db->prepare($sql);
@@ -250,10 +249,10 @@ class AdminAssignmentController extends Controller {
     /**
      * Kiểm tra phân công đã tồn tại
      */
-    private function checkAssignmentExists($positionId, $subjectId) {
-        $sql = "SELECT ID FROM tblTrain_Assign WHERE PositionID = ? AND SubjectID = ?";
+    private function checkAssignmentExists($positionId, $knowledgeGroupId) {
+        $sql = "SELECT ID FROM tblTrain_Assign WHERE PositionID = ? AND KnowledgeGroupID = ?";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$positionId, $subjectId]);
+        $stmt->execute([$positionId, $knowledgeGroupId]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -270,14 +269,15 @@ class AdminAssignmentController extends Controller {
     /**
      * Kiểm tra có dữ liệu liên quan
      */
-    private function checkHasRelatedData($positionId, $subjectId) {
+    private function checkHasRelatedData($positionId, $knowledgeGroupId) {
         $sql = "SELECT COUNT(*) as count
                 FROM tblTrain_Exam ex
                 INNER JOIN tblTrain_Employee emp ON ex.EmployeeID = emp.ID
-                WHERE emp.PositionID = ? AND ex.SubjectID = ?";
+                INNER JOIN tblTrain_Subject s ON ex.SubjectID = s.ID
+                WHERE emp.PositionID = ? AND s.KnowledgeGroupID = ?";
         
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$positionId, $subjectId]);
+        $stmt->execute([$positionId, $knowledgeGroupId]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
         return $result['count'] > 0;

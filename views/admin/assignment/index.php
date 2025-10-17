@@ -1,0 +1,477 @@
+<?php include __DIR__ . '/../../layout/admin/admin_sidebar.php'; ?>
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= $pageTitle ?></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-600: #4b5563;
+            --gray-900: #111827;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--gray-50);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            background: white;
+            padding: 1.5rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .page-title i {
+            color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .filters {
+            background: white;
+            padding: 1.5rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--gray-600);
+            font-size: 0.875rem;
+        }
+
+        .filter-control {
+            width: 100%;
+            padding: 0.625rem 1rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        .filter-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--gray-100);
+        }
+
+        th {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 1.25rem 1.5rem;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        tbody tr:hover {
+            background: var(--gray-50);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .badge.required {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.optional {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            transition: all 0.2s;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--gray-600);
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .filter-group {
+                width: 100%;
+            }
+
+            table {
+                font-size: 0.875rem;
+            }
+
+            th, td {
+                padding: 0.75rem 1rem;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <div class="page-title">
+                <i class="fas fa-tasks"></i>
+                <?= $pageTitle ?>
+            </div>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus"></i>
+                Tạo phân công
+            </button>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-cards">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div>
+                    <div class="stat-label">Tổng phân công</div>
+                    <div class="stat-value"><?= $stats['total_assignments'] ?? 0 ?></div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #d1fae5; color: #065f46;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div>
+                    <div class="stat-label">Bắt buộc</div>
+                    <div class="stat-value"><?= $stats['required_count'] ?? 0 ?></div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #fef3c7; color: #92400e;">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <div class="stat-label">Ảnh hưởng đến</div>
+                    <div class="stat-value"><?= $stats['affected_employees'] ?? 0 ?></div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #fee2e2; color: #991b1b;">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div>
+                    <div class="stat-label">Khóa học</div>
+                    <div class="stat-value"><?= $stats['total_subjects'] ?? 0 ?></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label class="filter-label">Vị trí</label>
+                <select class="filter-control">
+                    <option>Tất cả</option>
+                    <?php foreach ($positions as $pos): ?>
+                        <option value="<?= $pos['ID'] ?>" <?= ($filters['position'] ?? '') == $pos['ID'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($pos['PositionName']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Khóa học</label>
+                <select class="filter-control">
+                    <option>Tất cả</option>
+                    <?php foreach ($subjects as $subj): ?>
+                        <option value="<?= $subj['ID'] ?>" <?= ($filters['subject'] ?? '') == $subj['ID'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($subj['Title']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <button class="btn btn-primary">
+                <i class="fas fa-search"></i>
+                Lọc
+            </button>
+        </div>
+
+        <!-- Assignments Table -->
+        <div class="table-container">
+            <?php if (empty($assignments)): ?>
+                <div class="empty-state">
+                    <i class="fas fa-inbox" style="font-size: 4rem; color: var(--gray-200); margin-bottom: 1rem;"></i>
+                    <p>Chưa có phân công nào</p>
+                </div>
+            <?php else: ?>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Vị trí</th>
+                            <th>Khóa học</th>
+                            <th>Thời lượng</th>
+                            <th>Điểm yêu cầu</th>
+                            <th>Bắt buộc</th>
+                            <th>Nhân viên ảnh hưởng</th>
+                            <th>Hoàn thành</th>
+                            <th>Ngày phân công</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($assignments as $assign): ?>
+                            <tr>
+                                <td><strong><?= htmlspecialchars($assign['PositionName']) ?></strong></td>
+                                <td><?= htmlspecialchars($assign['SubjectName']) ?></td>
+                                <td><?= $assign['Duration'] ?? 0 ?> phút</td>
+                                <td><?= $assign['PassingScore'] ?? 70 ?>%</td>
+                                <td>
+                                    <span class="badge <?= $assign['IsRequired'] == 1 ? 'required' : 'optional' ?>">
+                                        <?= $assign['IsRequired'] == 1 ? '✓ Bắt buộc' : 'Tùy chọn' ?>
+                                    </span>
+                                </td>
+                                <td><?= $assign['affected_employees'] ?? 0 ?></td>
+                                <td>
+                                    <strong><?= $assign['completed_count'] ?? 0 ?>/<?= $assign['affected_employees'] ?? 0 ?></strong>
+                                </td>
+                                    <td><?= isset($assign['AssignDate']) ? date('d/m/Y', strtotime($assign['AssignDate'])) : '-' ?></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <form method="POST" action="<?= BASE_URL ?>/admin/assignments/<?= $assign['ID'] ?>/delete" style="flex: 1;">
+                                            <button type="submit" class="btn-sm btn-danger" onclick="return confirm('Bạn chắc chắn muốn xóa?')">
+                                                <i class="fas fa-trash"></i> Xóa
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Modal Tạo Phân Công -->
+    <div id="createModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 500px; width: 90%;">
+            <h2 style="margin-bottom: 1.5rem;">Tạo Phân Công Mới</h2>
+            <form method="POST" action="<?= BASE_URL ?>/admin/assignments/create">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Vị trí *</label>
+                    <select name="position_id" required style="width: 100%; padding: 0.625rem; border: 1px solid var(--gray-200); border-radius: 8px;">
+                        <option value="">Chọn vị trí</option>
+                        <?php foreach ($positions as $pos): ?>
+                            <option value="<?= $pos['ID'] ?>"><?= htmlspecialchars($pos['PositionName']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Khóa học *</label>
+                    <select name="subject_id" required style="width: 100%; padding: 0.625rem; border: 1px solid var(--gray-200); border-radius: 8px;">
+                        <option value="">Chọn khóa học</option>
+                        <?php foreach ($subjects as $subj): ?>
+                            <option value="<?= $subj['ID'] ?>"><?= htmlspecialchars($subj['Title']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                        <input type="checkbox" name="is_required" value="1">
+                        Bắt buộc
+                    </label>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Hạn chót</label>
+                    <input type="date" name="deadline" style="width: 100%; padding: 0.625rem; border: 1px solid var(--gray-200); border-radius: 8px;">
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" onclick="closeCreateModal()" style="padding: 0.625rem 1.25rem; background: var(--gray-200); border: none; border-radius: 8px; cursor: pointer;">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Tạo phân công</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openCreateModal() {
+            document.getElementById('createModal').style.display = 'flex';
+        }
+        function closeCreateModal() {
+            document.getElementById('createModal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

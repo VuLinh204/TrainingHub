@@ -65,7 +65,7 @@ class AdminEmployeeController extends Controller {
         $admin = $this->employeeModel->findById($adminId);
         $sidebarData = $this->getAdminSidebarData($adminId);
         
-        $this->render('admin/employee/index', [
+        $this->render('admin/employees/index', [
             'employees' => $employees,
             'departments' => $departments,
             'positions' => $positions,
@@ -105,7 +105,7 @@ class AdminEmployeeController extends Controller {
         $admin = $this->employeeModel->findById($adminId);
         $sidebarData = $this->getAdminSidebarData($adminId);
         
-        $this->render('admin/employee/show', [
+        $this->render('admin/employees/show', [
             'targetEmployee' => $employee,
             'certificates' => $certificates,
             'examHistory' => $examHistory,
@@ -139,7 +139,7 @@ class AdminEmployeeController extends Controller {
         $admin = $this->employeeModel->findById($adminId);
         $sidebarData = $this->getAdminSidebarData($adminId);
         
-        $this->render('admin/employee/progress', [
+        $this->render('admin/employees/progress', [
             'targetEmployee' => $employee,
             'subjectProgress' => $subjectProgress,
             'monthlyActivity' => $monthlyActivity,
@@ -279,20 +279,21 @@ class AdminEmployeeController extends Controller {
      */
     private function getLearningProgress($employeeId) {
         $sql = "SELECT 
-                s.ID,
-                s.Title,
-                s.Duration,
-                MAX(CASE WHEN ex.Passed = 1 THEN 1 ELSE 0 END) as completed,
-                MAX(ex.Score) as best_score,
-                COUNT(ex.ID) as attempts
-                FROM tblTrain_Subject s
-                INNER JOIN tblTrain_Assign a ON s.ID = a.SubjectID
-                INNER JOIN tblTrain_Employee e ON e.PositionID = a.PositionID
-                LEFT JOIN tblTrain_Exam ex ON (s.ID = ex.SubjectID AND ex.EmployeeID = e.ID)
-                WHERE e.ID = ? AND s.Status = 1
-                GROUP BY s.ID
-                ORDER BY s.Title";
-        
+            kg.ID AS KnowledgeGroupID,
+            kg.Name AS Title,
+            SUM(s.Duration) AS Duration,
+            MAX(CASE WHEN ex.Passed = 1 THEN 1 ELSE 0 END) AS completed,
+            MAX(ex.Score) AS best_score,
+            COUNT(ex.ID) AS attempts
+        FROM tblTrain_KnowledgeGroup kg
+        INNER JOIN tblTrain_Subject s ON s.KnowledgeGroupID = kg.ID
+        INNER JOIN tblTrain_Assign a ON a.KnowledgeGroupID = kg.ID
+        INNER JOIN tblTrain_Employee e ON e.PositionID = a.PositionID
+        LEFT JOIN tblTrain_Exam ex ON ex.SubjectID = s.ID AND ex.EmployeeID = e.ID
+        WHERE e.ID = ? AND s.Status = 1
+        GROUP BY kg.ID, kg.Name
+        ORDER BY kg.Name";
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$employeeId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

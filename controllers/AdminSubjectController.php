@@ -81,8 +81,6 @@ class AdminSubjectController extends Controller {
      * Xử lý tạo khóa học
      */
     public function create() {
-        $adminId = $this->checkAdminAuth();
-        
         $title = $_POST['title'] ?? '';
         $description = $_POST['description'] ?? '';
         $duration = $_POST['duration'] ?? 0;
@@ -103,7 +101,6 @@ class AdminSubjectController extends Controller {
                 'Content' => $content,
                 'PassingScore' => $passingScore,
                 'Status' => 1,
-                'CreatedBy' => $adminId,
                 'CreatedAt' => date('Y-m-d H:i:s'),
                 'UpdatedAt' => date('Y-m-d H:i:s')
             ];
@@ -264,12 +261,11 @@ class AdminSubjectController extends Controller {
         $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
         
         $sql = "SELECT s.*,
-                CONCAT(e.FirstName, ' ', e.LastName) as CreatorName,
+                -- CONCAT(emp.FirstName, ' ', emp.LastName) as CreatorName,
                 COUNT(DISTINCT ex.EmployeeID) as learner_count,
                 COUNT(DISTINCT c.ID) as cert_count,
                 AVG(ex.Score) as avg_score
                 FROM tblTrain_Subject s
-                LEFT JOIN tblTrain_Employee e ON s.CreatedBy = e.ID
                 LEFT JOIN tblTrain_Exam ex ON s.ID = ex.SubjectID AND ex.CompletedAt IS NOT NULL
                 LEFT JOIN tblTrain_Certificate c ON s.ID = c.SubjectID AND c.Status = 1
                 {$whereClause}

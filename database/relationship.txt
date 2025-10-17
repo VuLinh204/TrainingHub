@@ -1,0 +1,204 @@
+# Hệ thống Đào tạo: Mối quan hệ và Luồng dữ liệu
+
+## Tổng quan
+Hệ thống đào tạo được thiết kế để quản lý đào tạo nhân viên, bao gồm phân công nhóm kiến thức, theo dõi việc xem video, tổ chức bài kiểm tra, ghi nhận hoàn thành, cấp chứng chỉ và gửi thông báo. Schema cơ sở dữ liệu (từ `setting.sql` và `total.sql`) định nghĩa các bảng để hỗ trợ các chức năng này, với các mối quan hệ được đảm bảo qua các ràng buộc khóa ngoại. Dưới đây là giải thích về mối quan hệ giữa các bảng, logic của hệ thống đào tạo và luồng dữ liệu.
+
+## Mối quan hệ giữa các bảng
+Các bảng được liên kết thông qua các ràng buộc khóa ngoại để đảm bảo tính toàn vẹn dữ liệu. Dưới đây là các mối quan hệ chính:
+
+1. **tblTrain_Department -> tblTrain_Position**
+   - Mối quan hệ: Một-đến-Nhiều
+   - Khóa ngoại: `tblTrain_Position.DepartmentID` liên kết với `tblTrain_Department.ID`
+   - Giải thích: Một phòng ban có thể có nhiều vị trí, nhưng mỗi vị trí chỉ thuộc một phòng ban. Nếu phòng ban bị xóa, `DepartmentID` trong `tblTrain_Position` được đặt thành NULL (`ON DELETE SET NULL`).
+
+2. **tblTrain_Position -> tblTrain_Employee**
+   - Mối quan hệ: Một-đến-Nhiều
+   - Khóa ngoại: `tblTrain_Employee.PositionID` liên kết với `tblTrain_Position.ID`
+   - Giải thích: Một vị trí có thể được gán cho nhiều nhân viên, nhưng mỗi nhân viên chỉ có một vị trí. Nếu vị trí bị xóa, `PositionID` trong `tblTrain_Employee` được đặt thành NULL.
+
+3. **tblTrain_KnowledgeGroup -> tblTrain_Subject**
+   - Mối quan hệ: Một-đến-Nhiều
+   - Khóa ngoại: `tblTrain_Subject.KnowledgeGroupID` liên kết với `tblTrain_KnowledgeGroup.ID`
+   - Giải thích: Một nhóm kiến thức có thể chứa nhiều bài học, nhưng mỗi bài học chỉ thuộc một nhóm kiến thức. Nếu nhóm kiến thức bị xóa, `KnowledgeGroupID` trong `tblTrain_Subject` được đặt thành NULL.
+
+4. **tblTrain_Position -> tblTrain_Assign**
+   - Mối quan hệ: Một-đến-Nhiều
+   - Khóa ngoại: `tblTrain_Assign.PositionID` liên kết với `tblTrain_Position.ID`
+   - Giải thích: Một vị trí có thể được phân công nhiều nhóm kiến thức, nhưng mỗi phân công chỉ liên kết với một vị trí. Nếu vị trí bị xóa, các phân công liên quan cũng bị xóa (`ON DELETE CASCADE`).
+
+5. **tblTrain_KnowledgeGroup -> tblTrain_Assign**
+   - Mối quan hệ: Một-đến-Nhiều
+   - Khóa ngoại: `tblTrain_Assign.KnowledgeGroupID` liên kết với `tblTrain_KnowledgeGroup.ID`
+   - Giải thích: Một nhóm kiến thức có thể được phân công cho nhiều vị trí, nhưng mỗi phân công chỉ liên kết với một nhóm kiến thức. Nếu nhóm kiến thức bị xóa, các phân công liên quan cũng bị xóa.
+
+6. **tblTrain_Subject -> tblTrain_Question**
+   - Mối quan hệ: Một-đến-Nhiều
+   - Khóa ngoại: `tblTrain_Question.SubjectID` liên kết với `tblTrain_Subject.ID`
+   - Giải thích: Một bài học có thể có nhiều câu hỏi, nhưng mỗi câu hỏi chỉ thuộc một bài học. Nếu bài học bị xóa, các câu hỏi liên quan cũng bị xóa.
+
+7. **tblTrain_Question -> tblTrain_Answer**
+   - Mối quan hệ: Một-đến-Nhiều
+   - Khóa ngoại: `tblTrain_Answer.QuestionID` liên kết với `tblTrain_Question.ID`
+   - Giải thích: Một câu hỏi có thể có nhiều đáp án, nhưng mỗi đáp án chỉ thuộc một câu hỏi. Nếu câu hỏi bị xóa, các đáp án liên quan cũng bị xóa.
+
+8. **tblTrain_Employee -> tblTrain_Exam**
+   - Mối quan hệ: Một-đến-Nhiều
+   - Khóa ngoại: `tblTrain_Exam.EmployeeID` liên kết với `tblTrain_Employee.ID`
+   - Giải thích: Một nhân viên có thể tham gia nhiều bài thi, nhưng mỗi bài thi chỉ thuộc về một nhân viên. Nếu nhân viên bị xóa, các bài thi liên quan cũng bị xóa.
+
+9. **tblTrain_Subject -> tblTrain_Exam**
+   - Mối quan hệ: Một-đến-Nhiều
+   - Khóa ngoại: `tblTrain_Exam.SubjectID` liên kết với `tblTrain_Subject.ID`
+   - Giải thích: Một bài học có thể có nhiều bài thi, nhưng mỗi bài thi chỉ thuộc về một bài học. Nếu bài học bị xóa, các bài thi liên quan cũng bị xóa.
+
+10. **tblTrain_Exam -> tblTrain_ExamDetail**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_ExamDetail.ExamID` liên kết với `tblTrain_Exam.ID`
+    - Giải thích: Một bài thi có thể có nhiều chi tiết câu hỏi-đáp án, nhưng mỗi chi tiết chỉ thuộc về một bài thi. Nếu bài thi bị xóa, các chi tiết liên quan cũng bị xóa.
+
+11. **tblTrain_Question -> tblTrain_ExamDetail**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_ExamDetail.QuestionID` liên kết với `tblTrain_Question.ID`
+    - Giải thích: Một câu hỏi có thể xuất hiện trong nhiều chi tiết bài thi, nhưng mỗi chi tiết chỉ liên kết với một câu hỏi. Nếu câu hỏi bị xóa, các chi tiết liên quan cũng bị xóa.
+
+12. **tblTrain_Answer -> tblTrain_ExamDetail**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_ExamDetail.AnswerID` liên kết với `tblTrain_Answer.ID`
+    - Giải thích: Một đáp án có thể được chọn trong nhiều chi tiết bài thi, nhưng mỗi chi tiết chỉ liên kết với một đáp án. Nếu đáp án bị xóa, `AnswerID` trong `tblTrain_ExamDetail` được đặt thành NULL.
+
+13. **tblTrain_Employee -> tblTrain_WatchLog**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_WatchLog.EmployeeID` liên kết với `tblTrain_Employee.ID`
+    - Giải thích: Một nhân viên có thể có nhiều bản ghi xem video, nhưng mỗi bản ghi chỉ thuộc về một nhân viên. Nếu nhân viên bị xóa, các bản ghi xem liên quan cũng bị xóa.
+
+14. **tblTrain_Subject -> tblTrain_WatchLog**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_WatchLog.SubjectID` liên kết với `tblTrain_Subject.ID`
+    - Giải thích: Một bài học có thể có nhiều bản ghi xem video, nhưng mỗi bản ghi chỉ thuộc về một bài học. Nếu bài học bị xóa, các bản ghi xem liên quan cũng bị xóa.
+
+15. **tblTrain_Employee -> tblTrain_Completion**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_Completion.EmployeeID` liên kết với `tblTrain_Employee.ID`
+    - Giải thích: Một nhân viên có thể hoàn thành nhiều bài học, nhưng mỗi bản ghi hoàn thành chỉ thuộc về một nhân viên. Nếu nhân viên bị xóa, các bản ghi hoàn thành liên quan cũng bị xóa.
+
+16. **tblTrain_Subject -> tblTrain_Completion**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_Completion.SubjectID` liên kết với `tblTrain_Subject.ID`
+    - Giải thích: Một bài học có thể được hoàn thành bởi nhiều nhân viên, nhưng mỗi bản ghi hoàn thành chỉ thuộc về một bài học. Nếu bài học bị xóa, các bản ghi hoàn thành liên quan cũng bị xóa.
+
+17. **tblTrain_Exam -> tblTrain_Completion**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_Completion.ExamID` liên kết với `tblTrain_Exam.ID`
+    - Giải thích: Một bài thi có thể liên kết với nhiều bản ghi hoàn thành, nhưng mỗi bản ghi hoàn thành chỉ liên kết với một bài thi (nếu hoàn thành qua bài thi). Nếu bài thi bị xóa, `ExamID` trong `tblTrain_Completion` được đặt thành NULL.
+
+18. **tblTrain_Employee -> tblTrain_Completion (CreatedBy)**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_Completion.CreatedBy` liên kết với `tblTrain_Employee.ID`
+    - Giải thích: Một quản trị viên (nhân viên) có thể đánh dấu hoàn thành thủ công cho nhiều bài học, nhưng mỗi bản ghi hoàn thành chỉ liên kết với một quản trị viên. Nếu quản trị viên bị xóa, `CreatedBy` được đặt thành NULL.
+
+19. **tblTrain_Employee -> tblTrain_Certificate**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_Certificate.EmployeeID` liên kết với `tblTrain_Employee.ID`
+    - Giải thích: Một nhân viên có thể nhận nhiều chứng chỉ, nhưng mỗi chứng chỉ chỉ thuộc về một nhân viên. Nếu nhân viên bị xóa, các chứng chỉ liên quan cũng bị xóa.
+
+20. **tblTrain_Subject -> tblTrain_Certificate**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_Certificate.SubjectID` liên kết với `tblTrain_Subject.ID`
+    - Giải thích: Một bài học có thể có chứng chỉ được cấp cho nhiều nhân viên, nhưng mỗi chứng chỉ chỉ thuộc về một bài học. Nếu bài học bị xóa, các chứng chỉ liên quan cũng bị xóa.
+
+21. **tblTrain_Employee -> tblTrain_Certificate (RevokedBy, ApprovedBy)**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_Certificate.RevokedBy` và `ApprovedBy` liên kết với `tblTrain_Employee.ID`
+    - Giải thích: Một quản trị viên (nhân viên) có thể thu hồi hoặc phê duyệt nhiều chứng chỉ, nhưng mỗi chứng chỉ chỉ liên kết với một quản trị viên cho việc thu hồi hoặc phê duyệt. Nếu quản trị viên bị xóa, các trường này được đặt thành NULL.
+
+22. **tblTrain_Employee -> tblTrain_Notification**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_Notification.EmployeeID` liên kết với `tblTrain_Employee.ID`
+    - Giải thích: Một nhân viên có thể nhận nhiều thông báo, nhưng mỗi thông báo chỉ thuộc về một nhân viên. Nếu nhân viên bị xóa, các thông báo liên quan cũng bị xóa.
+
+23. **tblTrain_Subject -> tblTrain_Material**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_Material.SubjectID` liên kết với `tblTrain_Subject.ID`
+    - Giải thích: Một bài học có thể có nhiều tài liệu, nhưng mỗi tài liệu chỉ thuộc về một bài học. Nếu bài học bị xóa, các tài liệu liên quan cũng bị xóa.
+
+24. **tblTrain_Employee -> tblTrain_ActivityLog**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_ActivityLog.EmployeeID` liên kết với `tblTrain_Employee.ID`
+    - Giải thích: Một nhân viên có thể có nhiều bản ghi nhật ký hoạt động, nhưng mỗi bản ghi chỉ thuộc về một nhân viên. Nếu nhân viên bị xóa, `EmployeeID` được đặt thành NULL.
+
+25. **tblTrain_Employee -> tblTrain_Sessions**
+    - Mối quan hệ: Một-đến-Nhiều
+    - Khóa ngoại: `tblTrain_Sessions.EmployeeID` liên kết với `tblTrain_Employee.ID`
+    - Giải thích: Một nhân viên có thể có nhiều phiên đăng nhập, nhưng mỗi phiên chỉ thuộc về một nhân viên. Nếu nhân viên bị xóa, các phiên liên quan cũng bị xóa.
+
+## Luồng dữ liệu và Logic hệ thống đào tạo
+
+Hệ thống đào tạo tuân theo một quy trình có cấu trúc để phân công, theo dõi và chứng nhận đào tạo nhân viên:
+
+1. **Cấu hình hệ thống**:
+   - Bảng `tblTrain_Settings` lưu trữ các cài đặt toàn cục, như `company_name`, `min_score` (điểm tối thiểu để qua, mặc định 70%), `min_watch_percent` (tỷ lệ xem video tối thiểu, mặc định 90%), và các cài đặt email (ví dụ: `smtp_host`, `email_subject`).
+   - Các cài đặt này được sử dụng để áp dụng các quy tắc trên toàn hệ thống, như thời gian giới hạn bài thi (`exam_default_time`), số lần thi tối đa (`exam_max_attempts`), và các cài đặt bảo mật (`exam_block_copy`, `exam_fullscreen_mode`).
+
+2. **Cơ cấu tổ chức**:
+   - Các phòng ban (`tblTrain_Department`) và vị trí (`tblTrain_Position`) xác định cơ cấu tổ chức.
+   - Nhân viên (`tblTrain_Employee`) được gán vào các vị trí, với các vai trò (`admin`, `staff`, `user`) quyết định quyền truy cập. Ví dụ, quản trị viên có thể quản lý bài học, trong khi người dùng chỉ có thể thi và xem video.
+
+3. **Phân công đào tạo**:
+   - Nhóm kiến thức (`tblTrain_KnowledgeGroup`) là tập hợp các bài học (`tblTrain_Subject`) đại diện cho các mô-đun đào tạo (ví dụ: `Chung`, `Sales Cơ bản`).
+   - Phân công (`tblTrain_Assign`) liên kết các vị trí với nhóm kiến thức, xác định vị trí nào phải hoàn thành mô-đun đào tạo nào. Ví dụ, `PositionID=1` (Nhân viên) được phân công `KnowledgeGroupID=1` (Chung).
+   - Các trường `AssignDate` và `ExpireDate` đảm bảo phân công có thời hạn hiệu lực (ví dụ: 6 tháng).
+
+4. **Cung cấp nội dung bài học**:
+   - Bài học (`tblTrain_Subject`) chứa nội dung đào tạo, như video (`VideoURL`) và tài liệu (`FileURL`). Mỗi bài học xác định các yêu cầu như `MinWatchPercent` (tỷ lệ xem video tối thiểu) và `RequiredScore` (điểm tối thiểu để qua).
+   - Nhân viên xem video, và tiến trình được theo dõi trong `tblTrain_WatchLog`, ghi lại các sự kiện như `play`, `pause`, `ended`. Hệ thống áp dụng các quy tắc như `MaxSkipSeconds` để ngăn tua video quá mức.
+
+5. **Tổ chức bài thi**:
+   - Câu hỏi (`tblTrain_Question`) và đáp án (`tblTrain_Answer`) được liên kết với bài học. Câu hỏi có thể là trắc nghiệm đơn (`single`) hoặc nhiều lựa chọn (`multiple`), với điểm mặc định là 1 (`Score`).
+   - Khi nhân viên thi, một bản ghi được tạo trong `tblTrain_Exam`, lưu trữ `EmployeeID`, `SubjectID`, `StartTime`, `EndTime`, `Score`, và `Status`.
+   - Các câu trả lời trong bài thi được ghi lại trong `tblTrain_ExamDetail`, liên kết mỗi câu hỏi với đáp án được chọn và đánh dấu đúng/sai (`IsCorrect`).
+   - Trigger (`trg_exam_before_update`) tự động đặt `CompletedAt` khi trạng thái bài thi là `completed` và đặt `Passed=1` nếu điểm số ≥80%.
+
+6. **Theo dõi hoàn thành**:
+   - Khi nhân viên đáp ứng yêu cầu bài học (ví dụ: xem đủ tỷ lệ video hoặc qua bài thi), một bản ghi được tạo trong `tblTrain_Completion`.
+   - Trường `Method` chỉ ra cách hoàn thành (`video`, `exam`, hoặc `manual`). Với hoàn thành qua bài thi, `ExamID` liên kết với `tblTrain_Exam`, và điểm số được ghi lại.
+   - Hoàn thành thủ công được đánh dấu bởi quản trị viên (`CreatedBy`).
+
+7. **Cấp chứng chỉ**:
+   - Khi hoàn thành, một chứng chỉ được cấp và ghi lại trong `tblTrain_Certificate`. `CertificateCode` được tạo bằng cách sử dụng `cert_prefix` từ `tblTrain_Settings` (ví dụ: `CERT`) kết hợp với thông tin nhân viên và bài học.
+   - Trigger (`trg_certificate_before_insert`) tính toán `CertificateHash` bằng SHA256 để xác minh.
+   - Chứng chỉ có ngày `IssuedAt` và `ExpiresAt` (ví dụ: hiệu lực 12 tháng) và có thể được phê duyệt (`ApprovedBy`, `ApprovedAt`) hoặc thu hồi (`RevokedBy`, `RevokeReason`).
+   - Trường `FileURL` trỏ đến tệp PDF của chứng chỉ.
+
+8. **Thông báo**:
+   - Hệ thống gửi thông báo (`tblTrain_Notification`) đến nhân viên cho các sự kiện như phân công khóa học, kết quả bài thi, hoặc cấp chứng chỉ. Thông báo bao gồm `Title`, `Message`, và `Link` tùy chọn (ví dụ: để tải chứng chỉ).
+   - Trường `Type` phân loại thông báo (`info`, `success`, `warning`, `error`), và trường `Read` theo dõi xem nhân viên đã xem chưa.
+
+9. **Kiểm toán và ghi nhật ký**:
+   - Bảng `tblTrain_AuditLog` ghi lại các thay đổi đối với các bảng quan trọng (ví dụ: `tblTrain_Certificate`, `tblTrain_Exam`) thông qua các trigger (`trg_certificate_after_insert`, `trg_exam_after_update`), lưu trữ giá trị cũ và mới dưới dạng JSON.
+   - Bảng `tblTrain_ActivityLog` theo dõi các hành động của người dùng (ví dụ: đăng nhập, cập nhật) với `EmployeeID`, `IPAddress`, và `UserAgent`.
+   - Bảng `tblTrain_Sessions` quản lý các phiên đăng nhập của người dùng, đảm bảo truy cập an toàn với thời gian hết hạn (`ExpireAt`).
+
+10. **Tài liệu bổ sung**:
+    - Bảng `tblTrain_Material` lưu trữ các tài liệu bổ sung (ví dụ: PDF, tài liệu) cho bài học, truy cập qua `FileURL`.
+
+## Ví dụ luồng dữ liệu
+1. **Phân công**: Quản trị viên phân công `KnowledgeGroupID=1` (Chung) cho `PositionID=1` (Nhân viên) trong `tblTrain_Assign` với thời hạn hiệu lực 6 tháng.
+2. **Truy cập nhân viên**: Nhân viên có `PositionID=1` (ví dụ: EmployeeID=7) đăng nhập, tạo một phiên trong `tblTrain_Sessions`. Đăng nhập được ghi lại trong `tblTrain_ActivityLog`.
+3. **Xem video**: Nhân viên 7 xem video cho `SubjectID=1` (Giới thiệu Vietinsoft). Hệ thống ghi lại các sự kiện xem trong `tblTrain_WatchLog`, đảm bảo đáp ứng yêu cầu `MinWatchPercent` (90%).
+4. **Tham gia bài thi**: Nhân viên 7 thi bài kiểm tra cho `SubjectID=1`, tạo bản ghi trong `tblTrain_Exam`. Họ trả lời 10 câu hỏi, được ghi lại trong `tblTrain_ExamDetail`. Điểm số được tính (ví dụ: 85%), và trigger đặt `Passed=1` nếu điểm ≥80%.
+5. **Hoàn thành**: Khi qua bài thi, một bản ghi được tạo trong `tblTrain_Completion` với `Method=exam`, `Score=85`, và `ExamID`.
+6. **Cấp chứng chỉ**: Một chứng chỉ được cấp trong `tblTrain_Certificate` với `CertificateCode` duy nhất (ví dụ: `CERT-007-1-20251017`) và `ExpiresAt` đặt sau 12 tháng. Chứng chỉ được phê duyệt bởi quản trị viên (`ApprovedBy=1`).
+7. **Thông báo**: Một thông báo được gửi đến Nhân viên 7 trong `tblTrain_Notification` với liên kết để tải chứng chỉ.
+8. **Ghi nhật ký kiểm toán**: Việc cấp chứng chỉ được ghi lại trong `tblTrain_AuditLog`, lưu trữ hành động và chi tiết chứng chỉ.
+
+## Các vấn đề tiềm ẩn và đề xuất
+1. **PositionID=-1 trong tblTrain_Assign**: Tệp Excel gốc sử dụng `PositionID=-1` cho "Toàn công ty", vi phạm ràng buộc khóa ngoại. Đề xuất: Tạo một vị trí trong `tblTrain_Position` cho "Tất cả nhân viên" hoặc gán cho các vị trí cụ thể.
+2. **Thiếu dữ liệu Completion và Certificate**: Tệp Excel gốc thiếu các sheet `tblTrain_Completion` và `tblTrain_Certificate`. Những sheet này đã được thêm vào tệp Excel cập nhật để theo dõi hoàn thành và chứng chỉ.
+3. **Phòng ban trùng lặp**: Tệp `total.sql` chèn phòng ban `IT` trùng lặp. Đề xuất: Loại bỏ trùng lặp để đảm bảo `DepartmentName` duy nhất.
+4. **ExamDetail không hoàn chỉnh**: Tệp Excel gốc có các giá trị `AnswerID` bị thiếu trong `tblTrain_ExamDetail`. Những giá trị này đã được hoàn thiện trong tệp Excel cập nhật dựa trên câu hỏi và đáp án.
+5. **Hết hạn chứng chỉ**: Cột `Thời hạn Chứng chỉ (tháng)` trong `tblTrain_Subject` không được lưu trực tiếp trong schema SQL mà được suy ra từ `tblTrain_Certificate.ExpiresAt`. Đề xuất: Đảm bảo thời hạn hết hạn nhất quán (ví dụ: 12 tháng).
+
+## Kết luận
+Hệ thống đào tạo là một nền tảng mạnh mẽ để quản lý đào tạo nhân viên, với các mối quan hệ rõ ràng giữa các bảng để hỗ trợ phân công, cung cấp nội dung, đánh giá, hoàn thành, chứng nhận và thông báo. Luồng dữ liệu đảm bảo rằng nhân viên được phân công đào tạo phù hợp, tiến trình của họ được theo dõi, và các hoàn thành thành công được chứng nhận và kiểm toán. Tệp Excel cập nhật (`training_updated.xlsx`) phù hợp với schema SQL và khắc phục các bất thường để đảm bảo tính toàn vẹn dữ liệu.
+
+Nếu cần phân tích thêm về các bảng cụ thể hoặc luồng dữ liệu, vui lòng chỉ định rõ hơn.

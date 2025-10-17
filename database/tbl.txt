@@ -1,0 +1,187 @@
+# Mô tả các cột trong schema cơ sở dữ liệu hệ thống đào tạo
+
+## Bảng: tblTrain_Settings
+- ID: Khóa chính, định danh tự tăng cho mỗi cài đặt.
+- SettingKey: Khóa duy nhất cho cài đặt (ví dụ: `company_name`, `min_score`).
+- SettingValue: Giá trị của cài đặt (ví dụ: `CÔNG TY ABC`, `70`).
+- Description: Mô tả ngắn gọn về mục đích của cài đặt (ví dụ: `Tên công ty`).
+- CreatedAt: Thời điểm tạo cài đặt.
+- UpdatedAt: Thời điểm cập nhật gần nhất của cài đặt.
+
+## Bảng: tblTrain_ActivityLog
+- ID: Khóa chính, định danh tự tăng cho mỗi bản ghi nhật ký hoạt động.
+- EmployeeID: ID của nhân viên thực hiện hành động (liên kết với `tblTrain_Employee`).
+- Action: Loại hành động thực hiện (ví dụ: đăng nhập, cập nhật).
+- Description: Chi tiết hành động được thực hiện.
+- IPAddress: Địa chỉ IP của người dùng thực hiện hành động.
+- UserAgent: Thông tin trình duyệt hoặc thiết bị của người dùng.
+- CreatedAt: Thời điểm bản ghi nhật ký được tạo.
+
+## Bảng: tblTrain_Sessions
+- ID: Khóa chính, định danh duy nhất cho phiên đăng nhập (ví dụ: token phiên).
+- EmployeeID: ID của nhân viên liên quan đến phiên (liên kết với `tblTrain_Employee`).
+- Data: Dữ liệu phiên (ví dụ: thông tin phiên được mã hóa).
+- IPAddress: Địa chỉ IP của phiên.
+- UserAgent: Thông tin trình duyệt hoặc thiết bị của phiên.
+- CreatedAt: Thời điểm phiên được tạo.
+- ExpireAt: Thời điểm phiên hết hạn.
+
+## Bảng: tblTrain_AuditLog
+- ID: Khóa chính, định danh tự tăng cho mỗi bản ghi nhật ký kiểm toán.
+- ActorID: ID của nhân viên thực hiện hành động (liên kết với `tblTrain_Employee`).
+- Action: Loại hành động (`INSERT`, `UPDATE`, `DELETE`).
+- TableName: Tên bảng bị ảnh hưởng bởi hành động.
+- RecordID: ID của bản ghi bị ảnh hưởng trong bảng.
+- OldValue: Giá trị cũ của bản ghi (định dạng JSON).
+- NewValue: Giá trị mới của bản ghi (định dạng JSON).
+- CreatedAt: Thời điểm bản ghi kiểm toán được tạo.
+
+## Bảng: tblTrain_Position
+- ID: Khóa chính, định danh tự tăng cho mỗi vị trí.
+- PositionName: Tên vị trí (ví dụ: `Nhân viên`, `Quản lý`).
+- DepartmentID: ID của phòng ban mà vị trí thuộc về (liên kết với `tblTrain_Department`).
+- Status: Trạng thái vị trí (1 = hoạt động, 0 = không hoạt động).
+
+## Bảng: tblTrain_Department
+- ID: Khóa chính, định danh tự tăng cho mỗi phòng ban.
+- DepartmentName: Tên phòng ban (ví dụ: `IT`, `Sales`).
+
+## Bảng: tblTrain_Employee
+- ID: Khóa chính, định danh tự tăng cho mỗi nhân viên.
+- FirstName: Tên của nhân viên.
+- LastName: Họ của nhân viên.
+- Email: Địa chỉ email duy nhất của nhân viên.
+- PasswordHash: Mật khẩu được mã hóa (sử dụng bcrypt/argon2).
+- PositionID: ID của vị trí nhân viên (liên kết với `tblTrain_Position`).
+- Role: Vai trò của nhân viên (ví dụ: `admin`, `staff`, `user`).
+- Status: Trạng thái nhân viên (1 = hoạt động, 0 = không hoạt động).
+- LastLoginAt: Thời điểm đăng nhập gần nhất của nhân viên.
+- LastLoginIP: Địa chỉ IP của lần đăng nhập gần nhất.
+- CreatedAt: Thời điểm tạo bản ghi nhân viên.
+- DeletedAt: Thời điểm bản ghi nhân viên bị xóa mềm (NULL nếu còn hoạt động).
+
+## Bảng: tblTrain_KnowledgeGroup
+- ID: Khóa chính, định danh tự tăng cho mỗi nhóm kiến thức.
+- Name: Tên nhóm kiến thức (ví dụ: `Chung`, `Sales Cơ bản`).
+- Status: Trạng thái nhóm kiến thức (1 = hoạt động, 0 = không hoạt động).
+- CreatedAt: Thời điểm tạo nhóm kiến thức.
+
+## Bảng: tblTrain_Subject
+- ID: Khóa chính, định danh tự tăng cho mỗi bài học.
+- Title: Tiêu đề bài học (ví dụ: `JavaScript cơ bản`).
+- Description: Mô tả ngắn gọn về bài học.
+- VideoURL: URL của video bài học.
+- Duration: Thời lượng video (tính bằng giây).
+- FileURL: URL của tài liệu bổ sung (ví dụ: PDF).
+- KnowledgeGroupID: ID của nhóm kiến thức mà bài học thuộc về (liên kết với `tblTrain_KnowledgeGroup`).
+- MinWatchPercent: Tỷ lệ xem video tối thiểu (%).
+- MaxSkipSeconds: Số giây tối đa được phép tua video.
+- AllowRewatch: Cho phép xem lại video (1 = có, 0 = không).
+- RequiredScore: Điểm tối thiểu (%) để qua bài học.
+- MinCorrectAnswers: Số câu trả lời đúng tối thiểu để qua (0 = sử dụng `RequiredScore`).
+- ExamTimeLimit: Thời gian giới hạn làm bài kiểm tra (phút).
+- Status: Trạng thái bài học (1 = hoạt động, 0 = không hoạt động).
+- CreatedAt: Thời điểm tạo bài học.
+- DeletedAt: Thời điểm bài học bị xóa mềm (NULL nếu còn hoạt động).
+
+## Bảng: tblTrain_Question
+- ID: Khóa chính, định danh tự tăng cho mỗi câu hỏi.
+- SubjectID: ID của bài học mà câu hỏi thuộc về (liên kết với `tblTrain_Subject`).
+- QuestionText: Nội dung câu hỏi.
+- QuestionType: Loại câu hỏi (`single` hoặc `multiple` choice).
+- Score: Điểm số của câu hỏi (mặc định = 1).
+- Status: Trạng thái câu hỏi (1 = hoạt động, 0 = không hoạt động).
+- CreatedAt: Thời điểm tạo câu hỏi.
+
+## Bảng: tblTrain_Answer
+- ID: Khóa chính, định danh tự tăng cho mỗi đáp án.
+- QuestionID: ID của câu hỏi mà đáp án thuộc về (liên kết với `tblTrain_Question`).
+- AnswerText: Nội dung đáp án.
+- IsCorrect: Đáp án đúng hay sai (1 = đúng, 0 = sai).
+- CreatedAt: Thời điểm tạo đáp án.
+
+## Bảng: tblTrain_Exam
+- ID: Khóa chính, định danh tự tăng cho mỗi lần thi.
+- EmployeeID: ID của nhân viên thi (liên kết với `tblTrain_Employee`).
+- SubjectID: ID của bài học được thi (liên kết với `tblTrain_Subject`).
+- StartTime: Thời điểm bắt đầu thi.
+- EndTime: Thời điểm kết thúc thi.
+- CompletedAt: Thời điểm hoàn thành thi (đặt bởi trigger).
+- Score: Điểm số đạt được (%).
+- TotalQuestions: Tổng số câu hỏi trong bài thi.
+- CorrectAnswers: Số câu trả lời đúng trong bài thi.
+- Passed: Kết quả thi (1 = đậu, 0 = trượt, đặt bởi trigger nếu Score >= 80).
+- Status: Trạng thái bài thi (`started`, `completed`, `timeout`).
+- CreatedAt: Thời điểm tạo bản ghi bài thi.
+
+## Bảng: tblTrain_ExamDetail
+- ID: Khóa chính, định danh tự tăng cho mỗi chi tiết bài thi.
+- ExamID: ID của bài thi (liên kết với `tblTrain_Exam`).
+- QuestionID: ID của câu hỏi (liên kết với `tblTrain_Question`).
+- AnswerID: ID của đáp án được chọn (liên kết với `tblTrain_Answer`, NULL nếu chưa trả lời).
+- IsCorrect: Đáp án được chọn có đúng không (1 = đúng, 0 = sai).
+- CreatedAt: Thời điểm tạo chi tiết bài thi.
+
+## Bảng: tblTrain_Assign
+- ID: Khóa chính, định danh tự tăng cho mỗi phân công.
+- PositionID: ID của vị trí được phân công (liên kết với `tblTrain_Position`).
+- KnowledgeGroupID: ID của nhóm kiến thức được phân công (liên kết với `tblTrain_KnowledgeGroup`).
+- AssignDate: Ngày phân công nhóm kiến thức.
+- ExpireDate: Ngày hết hạn phân công.
+- IsRequired: Phân công có bắt buộc không (1 = có, 0 = không).
+- Status: Trạng thái phân công (1 = hoạt động, 0 = không hoạt động).
+
+## Bảng: tblTrain_WatchLog
+- ID: Khóa chính, định danh tự tăng cho mỗi bản ghi xem video.
+- EmployeeID: ID của nhân viên xem video (liên kết với `tblTrain_Employee`).
+- SubjectID: ID của bài học được xem (liên kết với `tblTrain_Subject`).
+- Event: Loại sự kiện xem (`heartbeat`, `ended`, `seek`, `resume`, `pause`).
+- WatchedSeconds: Số giây đã xem trong sự kiện hiện tại.
+- CurrentTime: Vị trí hiện tại trong video (tính bằng giây).
+- CreatedAt: Thời điểm tạo bản ghi xem video.
+- UserAgent: Thông tin trình duyệt hoặc thiết bị của người xem.
+- IPAddress: Địa chỉ IP của người xem.
+
+## Bảng: tblTrain_Completion
+- ID: Khóa chính, định danh tự tăng cho mỗi bản ghi hoàn thành.
+- EmployeeID: ID của nhân viên hoàn thành bài học (liên kết với `tblTrain_Employee`).
+- SubjectID: ID của bài học đã hoàn thành (liên kết với `tblTrain_Subject`).
+- CompletedAt: Thời điểm hoàn thành bài học.
+- Method: Phương thức hoàn thành (`video`, `exam`, `manual`).
+- Score: Điểm đạt được (nếu hoàn thành qua bài thi).
+- ExamID: ID của bài thi (liên kết với `tblTrain_Exam`, NULL nếu không qua bài thi).
+- CreatedBy: ID của quản trị viên đánh dấu hoàn thành thủ công (liên kết với `tblTrain_Employee`, NULL nếu không thủ công).
+
+## Bảng: tblTrain_Certificate
+- ID: Khóa chính, định danh tự tăng cho mỗi chứng chỉ.
+- EmployeeID: ID của nhân viên nhận chứng chỉ (liên kết với `tblTrain_Employee`).
+- SubjectID: ID của bài học liên quan đến chứng chỉ (liên kết với `tblTrain_Subject`).
+- CertificateCode: Mã chứng chỉ duy nhất (ví dụ: `CERT-007-3-20251017`).
+- CertificateHash: Mã băm SHA256 của thông tin chứng chỉ để xác minh (đặt bởi trigger).
+- IssuedAt: Thời điểm cấp chứng chỉ.
+- ExpiresAt: Thời điểm chứng chỉ hết hạn.
+- FileURL: URL của tệp chứng chỉ (ví dụ: PDF).
+- Status: Trạng thái chứng chỉ (1 = hoạt động, 0 = hết hạn/thu hồi).
+- RevokedAt: Thời điểm chứng chỉ bị thu hồi (NULL nếu còn hoạt động).
+- RevokedBy: ID của quản trị viên thu hồi chứng chỉ (liên kết với `tblTrain_Employee`).
+- RevokeReason: Lý do thu hồi chứng chỉ (nếu có).
+- ApprovedBy: ID của quản trị viên phê duyệt chứng chỉ (liên kết với `tblTrain_Employee`).
+- ApprovedAt: Thời điểm chứng chỉ được phê duyệt.
+
+## Bảng: tblTrain_Notification
+- ID: Khóa chính, định danh tự tăng cho mỗi thông báo.
+- EmployeeID: ID của nhân viên nhận thông báo (liên kết với `tblTrain_Employee`).
+- Title: Tiêu đề thông báo.
+- Message: Nội dung thông báo.
+- Link: URL liên kết với thông báo (ví dụ: liên kết đến chứng chỉ).
+- Read: Thông báo đã được đọc chưa (1 = đã đọc, 0 = chưa đọc).
+- Type: Loại thông báo (`info`, `success`, `warning`, `error`).
+- CreatedAt: Thời điểm tạo thông báo.
+
+## Bảng: tblTrain_Material
+- ID: Khóa chính, định danh tự tăng cho mỗi tài liệu.
+- SubjectID: ID của bài học mà tài liệu thuộc về (liên kết với `tblTrain_Subject`).
+- Title: Tiêu đề tài liệu.
+- FileURL: URL của tệp tài liệu (ví dụ: PDF, tài liệu).
+- Status: Trạng thái tài liệu (1 = hoạt động, 0 = không hoạt động).
+- CreatedAt: Thời điểm tạo tài liệu.

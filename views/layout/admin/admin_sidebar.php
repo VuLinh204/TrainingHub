@@ -256,7 +256,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="<?= BASE_URL ?>/admin/reports" class="nav-link">
+                    <a href="<?= BASE_URL ?>/admin/reports" class="nav-link <?= $pageTitle === 'Báo cáo tổng hợp' ? 'active' : '' ?>">
                         <i class="fas fa-chart-bar"></i>
                         <span>Báo cáo</span>
                     </a>
@@ -268,13 +268,13 @@
             <div class="nav-section-title">Quản lý chứng chỉ</div>
             <ul class="nav-menu">
                 <li class="nav-item">
-                    <a href="<?= BASE_URL ?>/admin/certificates" class="nav-link">
+                    <a href="<?= BASE_URL ?>/admin/certificates" class="nav-link <?= $pageTitle === 'Quản lý chứng chỉ' ? 'active' : '' ?>">
                         <i class="fas fa-certificate"></i>
                         <span>Tất cả chứng chỉ</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="<?= BASE_URL ?>/admin/certificates/pending" class="nav-link">
+                    <a href="<?= BASE_URL ?>/admin/certificates/pending" class="nav-link <?= $pageTitle === 'Chứng chỉ chờ duyệt' ? 'active' : '' ?>">
                         <i class="fas fa-clock"></i>
                         <span>Chờ duyệt</span>
                         <?php if (isset($sidebarData['stats']['pending_count']) && $sidebarData['stats']['pending_count'] > 0): ?>
@@ -283,7 +283,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="<?= BASE_URL ?>/admin/certificates/statistics" class="nav-link">
+                    <a href="<?= BASE_URL ?>/admin/certificates/statistics" class="nav-link <?= $pageTitle === 'Thống kê chứng chỉ' ? 'active' : '' ?>">
                         <i class="fas fa-chart-line"></i>
                         <span>Thống kê</span>
                     </a>
@@ -295,19 +295,19 @@
             <div class="nav-section-title">Quản lý đào tạo</div>
             <ul class="nav-menu">
                 <li class="nav-item">
-                    <a href="<?= BASE_URL ?>/admin/employees" class="nav-link">
+                    <a href="<?= BASE_URL ?>/admin/employees" class="nav-link <?= $pageTitle === 'Quản lý nhân viên' ? 'active' : '' ?>">
                         <i class="fas fa-users"></i>
                         <span>Nhân viên</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="<?= BASE_URL ?>/admin/subjects" class="nav-link">
+                    <a href="<?= BASE_URL ?>/admin/subjects" class="nav-link <?= $pageTitle === 'Quản lý khóa học' ? 'active' : '' ?>">
                         <i class="fas fa-book"></i>
                         <span>Khóa học</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="<?= BASE_URL ?>/admin/assignments" class="nav-link">
+                    <a href="<?= BASE_URL ?>/admin/assignments" class="nav-link <?= $pageTitle === 'Quản lý phân công' ? 'active' : '' ?>">
                         <i class="fas fa-tasks"></i>
                         <span>Phân công</span>
                     </a>
@@ -319,7 +319,7 @@
             <div class="nav-section-title">Hệ thống</div>
             <ul class="nav-menu">
                 <li class="nav-item">
-                    <a href="<?= BASE_URL ?>/profile" class="nav-link">
+                    <a href="<?= BASE_URL ?>/admin/settings" class="nav-link <?= $pageTitle === 'Cài đặt hệ thống' ? 'active' : '' ?>">
                         <i class="fas fa-user-cog"></i>
                         <span>Cài đặt</span>
                     </a>

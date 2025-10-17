@@ -82,6 +82,19 @@ return [
     'GET /admin/reports/completion' => 'AdminReportController@completion',
     'GET /admin/reports/exams' => 'AdminReportController@exams',
     'GET /admin/reports/certificates' => 'AdminReportController@certificates',
+
+    // Admin Settings
+    'GET /admin/settings' => 'AdminSettingsController@index',
+    'POST /admin/settings/update-general' => 'AdminSettingsController@updateGeneral',
+    'POST /admin/settings/update-notifications' => 'AdminSettingsController@updateNotifications',
+    'POST /admin/settings/update-certificate' => 'AdminSettingsController@updateCertificate',
+    'POST /admin/settings/update-exam' => 'AdminSettingsController@updateExam',
+    'POST /admin/settings/update-exam-security' => 'AdminSettingsController@updateExamSecurity',
+    'POST /admin/settings/update-smtp' => 'AdminSettingsController@updateSmtp',
+    'POST /admin/settings/update-email-template' => 'AdminSettingsController@updateEmailTemplate',
+    'POST /admin/settings/backup' => 'AdminSettingsController@backup',
+    'POST /admin/settings/cleanup' => 'AdminSettingsController@cleanup',
+    'POST /admin/settings/danger-zone' => 'AdminSettingsController@dangerZone',
     
     // API routes for AJAX
     'POST /subject/track' => 'SubjectController@trackProgress',

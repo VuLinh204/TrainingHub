@@ -34,7 +34,7 @@ class EmployeeController extends Controller {
         $completionStats = $this->completionModel->getEmployeeCompletionRate($employeeId);
         
         // Lấy chứng chỉ
-        $certificates = $this->certificateModel->getEmployeeCertificates($employeeId);
+        $certificates = $this->certificateModel->getCertificateHistory($employeeId);
         
         // Lấy các khóa học hoàn thành gần đây
         $recentCompletions = $this->completionModel->getRecentCompletions($employeeId, 5);

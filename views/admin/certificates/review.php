@@ -6,12 +6,6 @@
     <title><?= $pageTitle ?></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         :root {
             --primary: #4f46e5;
             --success: #10b981;
@@ -20,19 +14,6 @@
             --gray-100: #f3f4f6;
             --gray-600: #4b5563;
             --gray-900: #111827;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--gray-50);
-            color: var(--gray-900);
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 2rem;
         }
 
         .back-link {
@@ -219,6 +200,7 @@
 
         .btn {
             flex: 1;
+            width: 100%;
             padding: 1rem 2rem;
             border-radius: 10px;
             border: none;

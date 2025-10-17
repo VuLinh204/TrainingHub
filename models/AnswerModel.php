@@ -3,15 +3,12 @@ require_once __DIR__ . '/../core/Model.php';
 
 class AnswerModel extends Model {
     protected $table = 'tblTrain_Answer';
-    
-    /**
-     * Get answers by question ID
-     */
+
     public function getByQuestion($questionId, $status = 1) {
         try {
             $sql = "SELECT * FROM {$this->table}
                     WHERE QuestionID = ?
-                    ORDER BY RAND()";  // Shuffle for exam
+                    ORDER BY RAND()";
             return $this->query($sql, [$questionId]);
         } catch (Exception $e) {
             error_log("getByQuestion error: " . $e->getMessage() . " for question $questionId");
@@ -19,9 +16,6 @@ class AnswerModel extends Model {
         }
     }
 
-    /**
-     * Get correct answer for question
-     */
     public function getCorrectAnswer($questionId) {
         try {
             $sql = "SELECT * FROM {$this->table}
@@ -35,9 +29,6 @@ class AnswerModel extends Model {
         }
     }
 
-    /**
-     * Check if answer is correct
-     */
     public function isCorrect($answerId, $questionId) {
         try {
             $sql = "SELECT IsCorrect FROM {$this->table}
@@ -50,9 +41,6 @@ class AnswerModel extends Model {
         }
     }
 
-    /**
-     * Get answer by ID
-     */
     public function find($id) {
         try {
             $sql = "SELECT * FROM {$this->table} WHERE ID = ?";
@@ -64,9 +52,6 @@ class AnswerModel extends Model {
         }
     }
 
-    /**
-     * Create new answer
-     */
     public function create($data) {
         try {
             return $this->insert($this->table, $data);
@@ -76,9 +61,6 @@ class AnswerModel extends Model {
         }
     }
 
-    /**
-     * Update answer
-     */
     public function update($id, $data) {
         try {
             return $this->update($this->table, $data, 'ID = ?', [$id]);
@@ -88,9 +70,6 @@ class AnswerModel extends Model {
         }
     }
 
-    /**
-     * Delete answer (soft delete if needed, but since no Status, hard delete)
-     */
     public function delete($id) {
         try {
             return $this->deleteRow($this->table, 'ID = ?', [$id]);
@@ -100,9 +79,6 @@ class AnswerModel extends Model {
         }
     }
 
-    /**
-     * Get all answers for a question with pagination (admin use)
-     */
     public function getByQuestionPaginated($questionId, $limit = 50, $offset = 0) {
         try {
             $sql = "SELECT * FROM {$this->table}

@@ -1,33 +1,27 @@
 <?php
+require_once __DIR__ . '/../core/Model.php';
+
 class CompletionModel extends Model {
-    protected $table = 'tblTrain_Completion';  // Standardized table name casing
+    protected $table = 'tblTrain_Completion';
 
     public function markComplete($employeeId, $subjectId, $method = 'video', $score = null, $examId = null) {
         $data = [
             'EmployeeID' => $employeeId,
             'SubjectID' => $subjectId,
+            'CompletedAt' => date('Y-m-d H:i:s'),
             'Method' => $method,
             'Score' => $score,
             'ExamID' => $examId,
             'CreatedBy' => isset($_SESSION['admin_id']) ? $_SESSION['admin_id'] : null
         ];
 
-        // Kiểm tra xem đã tồn tại completion chưa
         $existing = $this->getCompletion($employeeId, $subjectId);
         if ($existing) {
-            return false; // Đã hoàn thành rồi
+            return false;
         }
-
         return $this->insert($this->table, $data);
     }
 
-    /**
-     * Lấy các completion gần nhất của nhân viên
-     *
-     * @param int $limit Số lượng bản ghi cần lấy
-     * @param int $employeeId ID của nhân viên
-     * @return array
-     */
     public function getRecentCompletions($employeeId, $limit = 5) {
         $sql = "SELECT c.*, 
                     s.Title AS SubjectName, 
@@ -41,9 +35,7 @@ class CompletionModel extends Model {
                 WHERE c.EmployeeID = ?
                 ORDER BY c.CompletedAt DESC
                 LIMIT ?";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$employeeId, $limit]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->query($sql, [$employeeId, $limit]);
     }
 
     public function getEmployeeCompletions($employeeId) {
@@ -67,15 +59,10 @@ class CompletionModel extends Model {
                     SUM(CASE WHEN Method IN ('video', 'exam', 'manual') THEN 1 ELSE 0 END) as completed_subjects
                 FROM {$this->table}
                 WHERE EmployeeID = ?";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$employeeId]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
+        $result = $this->query($sql, [$employeeId])[0] ?? [];
         $total = $result['total_subjects'] ?? 0;
         $completed = $result['completed_subjects'] ?? 0;
-
         $completionRate = ($total > 0) ? ($completed / $total) * 100 : 0;
-
         return [
             'completion_rate' => $completionRate,
             'total_completed' => $completed,
@@ -84,11 +71,10 @@ class CompletionModel extends Model {
     }
 
     public function getCompletion($employeeId, $subjectId) {
-        // FIXED: Added JOIN to tblTrain_Subject for Title (ExamName), and standardized table names
-        $sql = "SELECT c.*, s.Title as ExamName, CONCAT(emp.FirstName, ' ', emp.LastName) as CompletedBy
+        $sql = "SELECT c.*, s.Title as SubjectName, CONCAT(emp.FirstName, ' ', emp.LastName) as CompletedBy
                 FROM {$this->table} c
                 LEFT JOIN tblTrain_Exam e ON c.ExamID = e.ID 
-                LEFT JOIN tblTrain_Subject s ON e.SubjectID = s.ID  -- ← FIX: JOIN Subject for Title
+                LEFT JOIN tblTrain_Subject s ON c.SubjectID = s.ID
                 LEFT JOIN tblTrain_Employee emp ON c.CreatedBy = emp.ID
                 WHERE c.EmployeeID = ? AND c.SubjectID = ?";
         $result = $this->query($sql, [$employeeId, $subjectId]);
@@ -109,7 +95,6 @@ class CompletionModel extends Model {
     public function getCompletionStats($subjectId = null) {
         $where = $subjectId ? "WHERE c.SubjectID = ?" : "";
         $params = $subjectId ? [$subjectId] : [];
-
         $sql = "SELECT 
                 COUNT(*) as total_completions,
                 AVG(CASE WHEN Method = 'exam' THEN Score END) as avg_exam_score,
@@ -118,7 +103,6 @@ class CompletionModel extends Model {
                 COUNT(CASE WHEN Method = 'manual' THEN 1 END) as manual_completions
                 FROM {$this->table} c
                 {$where}";
-        
         return $this->query($sql, $params)[0];
     }
 }

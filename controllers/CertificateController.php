@@ -22,7 +22,7 @@ class CertificateController extends Controller {
     public function index() {
         $employeeId = $this->checkAuth();
         
-        $certificates = $this->certificateModel->getEmployeeCertificates($employeeId);
+        $certificates = $this->employeeModel->getCertificates($employeeId);
         $employee = $this->employeeModel->findById($employeeId);
         
         // Lấy dữ liệu thanh bên

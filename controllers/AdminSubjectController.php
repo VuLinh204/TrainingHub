@@ -84,7 +84,6 @@ class AdminSubjectController extends Controller {
         $title = $_POST['title'] ?? '';
         $description = $_POST['description'] ?? '';
         $duration = $_POST['duration'] ?? 0;
-        $content = $_POST['content'] ?? '';
         $passingScore = $_POST['passing_score'] ?? 70;
         
         if (empty($title)) {
@@ -98,7 +97,6 @@ class AdminSubjectController extends Controller {
                 'Title' => $title,
                 'Description' => $description,
                 'Duration' => $duration,
-                'Content' => $content,
                 'PassingScore' => $passingScore,
                 'Status' => 1,
                 'CreatedAt' => date('Y-m-d H:i:s'),
@@ -161,7 +159,6 @@ class AdminSubjectController extends Controller {
         $title = $_POST['title'] ?? '';
         $description = $_POST['description'] ?? '';
         $duration = $_POST['duration'] ?? 0;
-        $content = $_POST['content'] ?? '';
         $passingScore = $_POST['passing_score'] ?? 70;
         $status = $_POST['status'] ?? 1;
         
@@ -176,7 +173,6 @@ class AdminSubjectController extends Controller {
                 'Title' => $title,
                 'Description' => $description,
                 'Duration' => $duration,
-                'Content' => $content,
                 'PassingScore' => $passingScore,
                 'Status' => $status,
                 'UpdatedAt' => date('Y-m-d H:i:s')

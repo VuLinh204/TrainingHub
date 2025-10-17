@@ -20,8 +20,8 @@ return [
     
     // Exams - FIXED: Added GET route for exam page
     'GET /exam/:id' => 'ExamController@show',
-    'GET /exam/:id/start' => 'ExamController@show',  // ADD THIS LINE - Shows exam page
-    'POST /exam/:id/start' => 'ExamController@start', // API to start exam
+    'GET /exam/:id/start' => 'ExamController@show',
+    'POST /exam/:id/start' => 'ExamController@start',
     'POST /exam/:id/submit' => 'ExamController@submit',
     'POST /exam/check-answer' => 'ExamController@checkAnswer',
     'GET /exam/:id/results' => 'ExamController@results',

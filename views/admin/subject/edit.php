@@ -421,7 +421,9 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="description">Mô tả</label>
+                    <label class="form-label" for="description">
+                        Mô tả
+                    </label>
                     <textarea id="description" 
                               name="description" 
                               class="form-control" 
@@ -456,23 +458,6 @@
                                required>
                         <small class="form-help">Điểm tối thiểu để đạt khóa học</small>
                     </div>
-                </div>
-            </div>
-
-            <div class="form-section">
-                <h2 class="section-title">
-                    <i class="fas fa-file-alt"></i>
-                    Nội dung khóa học
-                </h2>
-
-                <div class="form-group">
-                    <label class="form-label" for="content">Nội dung chi tiết</label>
-                    <textarea id="content" 
-                              name="content" 
-                              class="form-control" 
-                              rows="8"
-                              placeholder="Nhập nội dung chi tiết của khóa học..."><?= htmlspecialchars($subject['Content'] ?? '') ?></textarea>
-                    <small class="form-help">Mô tả chi tiết về nội dung, yêu cầu, và kết quả đạt được</small>
                 </div>
             </div>
 

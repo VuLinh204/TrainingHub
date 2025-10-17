@@ -62,7 +62,7 @@ class AdminDashboardController extends Controller {
         $pendingCerts = $this->certificateModel->getPendingCertificates();
         
         // Lấy chứng chỉ sắp hết hạn
-        $expiringCerts = $this->certificateModel->getExpiringCertificates(30);
+        $expiringCerts = $this->certificateModel->getExpiringSoon(30);
         
         // Lấy thống kê theo tháng
         $monthlyStats = $this->getMonthlyStats();

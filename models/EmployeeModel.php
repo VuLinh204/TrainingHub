@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../core/Model.php';
 
 class EmployeeModel extends Model {
-    protected $table = 'tbltrain_employee';
+    protected $table = 'tblTrain_Employee';
 
     public function findByEmail($email) {
         $sql = "SELECT * FROM {$this->table} WHERE Email = ? LIMIT 1";
@@ -25,15 +25,7 @@ class EmployeeModel extends Model {
     }
 
     public function updateProfile($id, $data) {
-        // Only allow updating certain fields
-        $allowedFields = [
-            'FirstName',
-            'LastName',
-            'Phone',
-            'Department',
-            'Position'
-        ];
-
+        $allowedFields = ['FirstName', 'LastName', 'Phone', 'PositionID'];
         $updateData = array_intersect_key($data, array_flip($allowedFields));
         return $this->update($this->table, $updateData, "ID = ?", [$id]);
     }
@@ -46,18 +38,18 @@ class EmployeeModel extends Model {
     }
 
     public function getCompletedSubjects($id) {
-        $sql = "SELECT s.*, e.CreatedAt as CompletedAt, e.Score
-                FROM " . TBL_EXAM . " e
-                JOIN " . TBL_SUBJECT . " s ON e.SubjectID = s.ID
+        $sql = "SELECT s.*, e.CompletedAt as CompletedAt, e.Score
+                FROM tblTrain_Exam e
+                JOIN tblTrain_Subject s ON e.SubjectID = s.ID
                 WHERE e.EmployeeID = ? AND e.Passed = 1
-                ORDER BY e.CreatedAt DESC";
+                ORDER BY e.CompletedAt DESC";
         return $this->query($sql, [$id]);
     }
 
     public function getCertificates($id) {
         $sql = "SELECT c.*, s.Title as SubjectName
-                FROM " . TBL_CERTIFICATE . " c
-                JOIN " . TBL_SUBJECT . " s ON c.SubjectID = s.ID
+                FROM tblTrain_Certificate c
+                JOIN tblTrain_Subject s ON c.SubjectID = s.ID
                 WHERE c.EmployeeID = ? AND c.Status = 1
                 ORDER BY c.IssuedAt DESC";
         return $this->query($sql, [$id]);
@@ -68,21 +60,21 @@ class EmployeeModel extends Model {
                 a.AssignDate,
                 a.ExpireDate,
                 (SELECT MAX(e.Score) 
-                 FROM " . TBL_EXAM . " e 
+                 FROM tblTrain_Exam e 
                  WHERE e.SubjectID = s.ID 
                  AND e.EmployeeID = ? 
                  AND e.Passed = 1) as BestScore,
                 (SELECT COUNT(*) > 0 
-                 FROM " . TBL_EXAM . " e 
+                 FROM tblTrain_Exam e 
                  WHERE e.SubjectID = s.ID 
                  AND e.EmployeeID = ? 
                  AND e.Passed = 1) as IsCompleted
-                FROM " . TBL_SUBJECT . " s
-                INNER JOIN " . TBL_ASSIGN . " a ON s.ID = a.SubjectID
-                INNER JOIN " . TBL_POSITION . " p ON p.ID = a.PositionID
+                FROM tblTrain_Subject s
+                INNER JOIN tblTrain_Assign a ON s.KnowledgeGroupID = a.KnowledgeGroupID
+                INNER JOIN tblTrain_Position p ON p.ID = a.PositionID
                 WHERE p.ID = (
                     SELECT PositionID 
-                    FROM " . TBL_EMPLOYEE . " 
+                    FROM tblTrain_Employee 
                     WHERE ID = ?
                 )
                 AND s.Status = 1
@@ -93,7 +85,7 @@ class EmployeeModel extends Model {
     }
 
     public function hasCertificate($employeeId, $subjectId) {
-        $sql = "SELECT 1 FROM " . TBL_CERTIFICATE . " 
+        $sql = "SELECT 1 FROM tblTrain_Certificate 
                 WHERE EmployeeID = ? AND SubjectID = ? AND Status = 1 
                 LIMIT 1";
         $result = $this->query($sql, [$employeeId, $subjectId]);
@@ -101,16 +93,14 @@ class EmployeeModel extends Model {
     }
 
     public function getProgress($id, $subjectId) {
-        // Lấy thông tin xem video
         $sql = "SELECT MAX(WatchedSeconds) as watch_time,
                 COUNT(DISTINCT CASE WHEN Event = 'ended' THEN ID END) as completions
-                FROM " . TBL_WATCH_LOG . "
+                FROM tblTrain_WatchLog
                 WHERE EmployeeID = ? AND SubjectID = ?";
         $watchData = $this->query($sql, [$id, $subjectId])[0];
 
-        // Lấy điểm thi cao nhất
         $sql = "SELECT MAX(Score) as best_score
-                FROM " . TBL_EXAM . "
+                FROM tblTrain_Exam
                 WHERE EmployeeID = ? AND SubjectID = ? AND Passed = 1";
         $examData = $this->query($sql, [$id, $subjectId])[0];
 

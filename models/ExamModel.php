@@ -3,7 +3,7 @@ require_once __DIR__ . '/../core/Model.php';
 
 class ExamModel extends Model {
     protected $table = 'tblTrain_Exam';
-    
+
     public function startExam($employeeId, $subjectId) {
         try {
             return $this->create([
@@ -11,6 +11,8 @@ class ExamModel extends Model {
                 'SubjectID' => $subjectId,
                 'StartTime' => date('Y-m-d H:i:s'),
                 'Score' => 0,
+                'TotalQuestions' => 0,
+                'CorrectAnswers' => 0,
                 'Passed' => 0,
                 'Status' => 'started'
             ]);
@@ -26,27 +28,21 @@ class ExamModel extends Model {
                     FROM tblTrain_Question q
                     WHERE q.SubjectID = ? AND q.Status = 1
                     ORDER BY RAND()";
-            
             $questions = $this->query($sql, [$subjectId]);
-            
             if (empty($questions)) {
                 throw new Exception("No questions found for subject ID: $subjectId");
             }
-            
             foreach ($questions as &$question) {
                 $answerSql = "SELECT ID, AnswerText 
                              FROM tblTrain_Answer 
                              WHERE QuestionID = ?
                              ORDER BY RAND()";
                 $answers = $this->query($answerSql, [$question['ID']]);
-                
                 if (empty($answers)) {
                     throw new Exception("No answers found for question ID: " . $question['ID']);
                 }
-                
                 $question['answers'] = $answers;
             }
-            
             return $questions;
         } catch (Exception $e) {
             error_log("getExamQuestions error: " . $e->getMessage() . " for subject $subjectId");
@@ -80,12 +76,11 @@ class ExamModel extends Model {
             }
             $subject = $subjectResult[0];
 
-            // Sử dụng số câu hỏi thực tế từ $answers
             $totalQuestions = count($answers);
 
-            // Kiểm tra tính hợp lệ của answers
             $questionIds = $this->query("SELECT ID FROM tblTrain_Question WHERE SubjectID = ? AND Status = 1", [$exam['SubjectID']]);
             $questionIds = array_column($questionIds, 'ID');
+
             foreach ($answers as $answer) {
                 if (!in_array($answer['question_id'], $questionIds)) {
                     throw new Exception("Invalid question_id: " . $answer['question_id']);
@@ -109,7 +104,6 @@ class ExamModel extends Model {
 
             $score = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
 
-            // Kiểm tra điểm số trước đó
             $previousExamSql = "SELECT Score FROM tblTrain_Exam 
                                 WHERE EmployeeID = ? AND SubjectID = ? AND Status = 'completed' 
                                 ORDER BY Score DESC LIMIT 1";
@@ -126,24 +120,16 @@ class ExamModel extends Model {
 
             $updateData = [
                 'EndTime' => date('Y-m-d H:i:s'),
-                'Score' => max($score, $previousScore), // Lưu điểm cao nhất
+                'CompletedAt' => date('Y-m-d H:i:s'),
+                'Score' => max($previousScore, $score),
                 'TotalQuestions' => $totalQuestions,
                 'CorrectAnswers' => $correctCount,
-                'Status' => 'completed',
-                'Passed' => $passed ? 1 : 0
+                'Passed' => $passed ? 1 : 0,
+                'Status' => 'completed'
             ];
             $this->update($this->table, $updateData, 'ID = ?', [$examId]);
 
             if ($passed) {
-                $completionModel = new CompletionModel();
-                $completionModel->markComplete(
-                    $exam['EmployeeID'], 
-                    $exam['SubjectID'], 
-                    'exam', 
-                    $score, 
-                    $examId
-                );
-
                 try {
                     $certificateModel = new CertificateModel();
                     $certificateModel->generateCertificate(
@@ -194,7 +180,6 @@ class ExamModel extends Model {
             $questionCountSql = "SELECT COUNT(*) as total FROM tblTrain_Question 
                                 WHERE SubjectID = ? AND Status = 1";
             $questionCount = $this->query($questionCountSql, [$subjectId])[0]['total'];
-
             if ($questionCount == 0) {
                 return [
                     'allowed' => false,
@@ -206,7 +191,6 @@ class ExamModel extends Model {
                                 WHERE EmployeeID = ? AND SubjectID = ? 
                                 AND DATE(StartTime) = CURDATE()";
             $attemptsToday = $this->query($attemptsTodaySql, [$employeeId, $subjectId])[0]['total'];
-
             if ($attemptsToday >= 999) {
                 return [
                     'allowed' => false,
@@ -246,7 +230,6 @@ class ExamModel extends Model {
                     FROM {$this->table} e
                     JOIN tblTrain_Subject s ON e.SubjectID = s.ID
                     WHERE e.ID = ? AND e.EmployeeID = ?";
-            
             $result = $this->query($sql, [$examId, $employeeId]);
             return $result ? $result[0] : null;
         } catch (Exception $e) {
@@ -267,7 +250,6 @@ class ExamModel extends Model {
                     LEFT JOIN tblTrain_Answer ca ON (ca.QuestionID = q.ID AND ca.IsCorrect = 1)
                     WHERE ed.ExamID = ?
                     ORDER BY ed.ID";
-            
             return $this->query($sql, [$examId]);
         } catch (Exception $e) {
             error_log("getExamDetails error: " . $e->getMessage());
@@ -275,4 +257,3 @@ class ExamModel extends Model {
         }
     }
 }
-?>

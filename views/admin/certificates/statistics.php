@@ -572,10 +572,15 @@
         if (monthlyCtx) {
             const monthlyData = <?= json_encode($stats['monthly'] ?? []) ?>;
             const months = monthlyData.map(item => {
+                // Kiểm tra item.month có phải chuỗi hợp lệ không
+                if (typeof item.month !== 'string' || !item.month.includes('-')) {
+                    console.warn('Invalid month format:', item);
+                    return 'N/A';
+                }
                 const [year, month] = item.month.split('-');
                 return `${month}/${year}`;
             });
-            const counts = monthlyData.map(item => item.count);
+            const counts = monthlyData.map(item => parseInt(item.count) || 0);
 
             new Chart(monthlyCtx, {
                 type: 'line',

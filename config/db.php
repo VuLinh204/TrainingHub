@@ -23,9 +23,10 @@ if (!isset($GLOBALS['db'])) {
     define('TBL_POSITION', 'tblTrain_Position');
     define('TBL_QUESTION', 'tblTrain_Question');
     define('TBL_SUBJECT', 'tblTrain_Subject');
-        define('TBL_WATCH_LOG', 'tblTrain_WatchLog');
-        define('TBL_COMPLETION', 'tblTrain_Completion');
-        define('TBL_CERTIFICATE', 'tblTrain_Certificate');
+    define('TBL_WATCH_LOG', 'tblTrain_WatchLog');
+    define('TBL_COMPLETION', 'tblTrain_Completion');
+    define('TBL_CERTIFICATE', 'tblTrain_Certificate');
+    define('TBL_NOTIFICATION', 'tblTrain_Notification');
         
         return $db;
     } catch (PDOException $e) {

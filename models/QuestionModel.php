@@ -3,15 +3,12 @@ require_once __DIR__ . '/../core/Model.php';
 
 class QuestionModel extends Model {
     protected $table = 'tblTrain_Question';
-    
-    /**
-     * Get questions by subject ID
-     */
+
     public function getBySubject($subjectId, $status = 1) {
         try {
             $sql = "SELECT * FROM {$this->table}
                     WHERE SubjectID = ? AND Status = ?
-                    ORDER BY RAND()";  // Shuffle for exam
+                    ORDER BY RAND()";
             return $this->query($sql, [$subjectId, $status]);
         } catch (Exception $e) {
             error_log("getBySubject error: " . $e->getMessage() . " for subject $subjectId");
@@ -19,9 +16,6 @@ class QuestionModel extends Model {
         }
     }
 
-    /**
-     * Get question by ID
-     */
     public function find($id) {
         try {
             $sql = "SELECT * FROM {$this->table} WHERE ID = ?";
@@ -33,9 +27,6 @@ class QuestionModel extends Model {
         }
     }
 
-    /**
-     * Get question count by subject
-     */
     public function getCountBySubject($subjectId) {
         try {
             $sql = "SELECT COUNT(*) as total FROM {$this->table}
@@ -48,9 +39,6 @@ class QuestionModel extends Model {
         }
     }
 
-    /**
-     * Create new question
-     */
     public function create($data) {
         try {
             return $this->insert($this->table, $data);
@@ -60,9 +48,6 @@ class QuestionModel extends Model {
         }
     }
 
-    /**
-     * Update question
-     */
     public function update($id, $data) {
         try {
             return $this->update($this->table, $data, 'ID = ?', [$id]);
@@ -72,9 +57,6 @@ class QuestionModel extends Model {
         }
     }
 
-    /**
-     * Delete question (soft delete by Status)
-     */
     public function delete($id) {
         try {
             return $this->update($this->table, ['Status' => 0], 'ID = ?', [$id]);
@@ -84,9 +66,6 @@ class QuestionModel extends Model {
         }
     }
 
-    /**
-     * Get all questions with pagination
-     */
     public function getAll($limit = 20, $offset = 0, $status = 1) {
         try {
             $sql = "SELECT q.*, s.Title as SubjectTitle 

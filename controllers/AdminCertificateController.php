@@ -291,12 +291,17 @@ class AdminCertificateController extends Controller {
      */
     public function statistics() {
         $adminId = $this->checkAdminAuth();
-        
-        $stats = $this->certificateModel->getCertificateStatistics();
-        
+
+        // Lấy tham số lọc từ URL
+        $dateFrom = $_GET['date_from'] ?? null;
+        $dateTo = $_GET['date_to'] ?? null;
+
+        // Gọi thống kê với bộ lọc
+        $stats = $this->certificateModel->getCertificateStatistics($dateFrom, $dateTo);
+
         $admin = $this->employeeModel->findById($adminId);
         $sidebarData = $this->getAdminSidebarData($adminId);
-        
+
         $this->render('admin/certificates/statistics', [
             'stats' => $stats,
             'employee' => $admin,

@@ -521,14 +521,16 @@
     color: #6b7280;
 }
 
-.empty-state i {
+.empty-state .empty-icon, .empty-state i.empty-icon {
+    /* Explicit empty-state illustration/icon sizing */
     font-size: 64px;
-    color: #fff;
+    color: #d1d5db;
     margin-bottom: 16px;
 }
 
-.empty-state .empty-icon {
-    color: #d1d5db;
+/* Ensure other icons inside empty-state (but not the illustration) don't get oversized */
+.empty-state i:not(.empty-icon) {
+    font-size: 18px;
 }
 
 .empty-state h3 {

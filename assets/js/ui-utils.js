@@ -55,19 +55,30 @@ const UIUtils = (function () {
         const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
 
         dropdownToggles.forEach((toggle) => {
+            toggle.setAttribute('aria-expanded', 'false');
             toggle.addEventListener('click', function (e) {
-                e.stopPropagation();
+                console.log('[UIUtils] dropdown toggle clicked', this);
+                // prevent other click handlers from running and interfering
+                if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+                else e.stopPropagation();
 
                 const dropdown = this.closest('.dropdown');
                 const isActive = dropdown.classList.contains('active');
 
-                // Close all dropdowns
+                // Close all dropdowns first
                 closeAllDropdowns();
 
-                // Toggle current dropdown
-                if (!isActive) {
-                    dropdown.classList.add('active');
-                }
+                // Small delay to avoid races with other scripts that may run on click
+                // Ensure current dropdown toggles correctly
+                const self = this;
+                setTimeout(function () {
+                    if (!isActive) {
+                        dropdown.classList.add('active');
+                        self.setAttribute('aria-expanded', 'true');
+                    } else {
+                        self.setAttribute('aria-expanded', 'false');
+                    }
+                }, 10);
             });
         });
 
@@ -92,6 +103,8 @@ const UIUtils = (function () {
     function closeAllDropdowns() {
         document.querySelectorAll('.dropdown.active').forEach((dropdown) => {
             dropdown.classList.remove('active');
+            const toggle = dropdown.querySelector('.dropdown-toggle');
+            if (toggle) toggle.setAttribute('aria-expanded', 'false');
         });
     }
 

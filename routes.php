@@ -17,6 +17,7 @@ return [
     // Subjects
     'GET /subjects' => 'SubjectController@index',
     'GET /subject/:id' => 'SubjectController@detail',
+    'GET /search' => 'SubjectController@search',
     
     // Exams - FIXED: Added GET route for exam page
     'GET /exam/:id' => 'ExamController@show',

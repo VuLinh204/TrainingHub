@@ -644,6 +644,11 @@
             const dropdown = notificationBtn.closest('.dropdown');
             const menu = qs('.dropdown-menu', dropdown);
 
+            // ensure dropdown visually opens
+            if (dropdown && !dropdown.classList.contains('active')) {
+                dropdown.classList.add('active');
+            }
+
             if (!menu) return;
 
             if (menu.children.length === 0) {

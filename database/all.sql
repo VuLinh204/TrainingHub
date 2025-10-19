@@ -453,4 +453,35 @@ INSERT INTO tblTrain_Material (SubjectID, Title, FileURL, Status) VALUES
 (1, 'Hướng dẫn Vietinsoft', 'http://localhost/Training/materials/intro-vietinsoft.pdf', 1),
 (4, 'Tài liệu JavaScript cơ bản', 'http://localhost/Training/materials/js-basic.pdf', 1);
 
+-- Thêm dữ liệu mẫu bổ sung để test
+-- Thông báo thêm
+INSERT INTO tblTrain_Notification (EmployeeID, Title, Message, Link, `Read`, Type) VALUES
+(2, 'Hẹn giờ họp đào tạo', 'Buổi đào tạo kỹ năng bán hàng sẽ diễn ra vào thứ 2 lúc 9:00.', '/events/1', 0, 'info'),
+(3, 'Nhiệm vụ mới', 'Bạn được giao 1 nhiệm vụ học mới: Sales - Kỹ năng chốt đơn.', '/assignments', 0, 'info'),
+(1, 'Backup hệ thống', 'Hệ thống sẽ backup vào 02:00 sáng mai.', NULL, 0, 'warning');
+
+-- Thêm materials khác
+INSERT INTO tblTrain_Material (SubjectID, Title, FileURL, Status) VALUES
+(2, 'Mẫu kịch bản bán hàng', '/assets/files/sales-script.docx', 1),
+(3, 'Bộ mẫu HTML cơ bản', '/assets/files/html-templates.zip', 1);
+
+-- Thêm certificates mẫu
+INSERT INTO tblTrain_Certificate (EmployeeID, SubjectID, CertificateCode, IssuedAt, ExpiresAt, FileURL, Status, ApprovedBy, ApprovedAt) VALUES
+(2, 1, 'CERT-2025-0101', NOW() - INTERVAL 60 DAY, DATE_ADD(NOW(), INTERVAL 305 DAY), '/assets/certs/CERT-2025-0101.pdf', 1, 1, NOW() - INTERVAL 59 DAY),
+(3, 2, 'CERT-2025-0102', NOW() - INTERVAL 30 DAY, DATE_ADD(NOW(), INTERVAL 335 DAY), '/assets/certs/CERT-2025-0102.pdf', 1, 1, NOW() - INTERVAL 29 DAY);
+
+-- Thêm exam & completion mẫu cho test lịch sử
+INSERT INTO tblTrain_Exam (EmployeeID, SubjectID, StartTime, EndTime, CompletedAt, Score, TotalQuestions, CorrectAnswers, Passed, Status) VALUES
+(2, 2, '2025-09-20 14:00:00', '2025-09-20 14:30:00', '2025-09-20 14:30:00', 92, 10, 9, 1, 'completed'),
+(3, 1, '2025-09-25 10:00:00', '2025-09-25 10:20:00', '2025-09-25 10:20:00', 68, 8, 5, 0, 'completed');
+
+INSERT INTO tblTrain_Completion (EmployeeID, SubjectID, CompletedAt, Method, Score, ExamID, CreatedBy) VALUES
+(2, 2, '2025-09-20 14:30:00', 'exam', 92, 3, 1),
+(3, 1, '2025-09-25 10:20:00', 'exam', 68, 4, 1);
+
+-- Thêm watch logs
+INSERT INTO tblTrain_WatchLog (EmployeeID, SubjectID, Event, WatchedSeconds, CurrentTime, UserAgent, IPAddress) VALUES
+(2, 1, 'heartbeat', 300, 300, 'Mozilla/5.0 (Windows NT)', '10.0.0.5'),
+(3, 4, 'ended', 1500, 1500, 'Mozilla/5.0 (Macintosh)', '10.0.0.6');
+
 SET FOREIGN_KEY_CHECKS = 1;

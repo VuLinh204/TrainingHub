@@ -1,0 +1,52 @@
+/* Consolidated view helpers and layout helpers */
+
+/* Sidebar collapsed state */
+.sidebar.collapsed {
+    width: 72px;
+}
+
+body.sidebar-collapsed .content-wrapper {
+    margin-left: 72px; /* adjust according to collapsed width */
+}
+
+.menu-toggle {
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    position: relative;
+    z-index: 9999; /* ensure it's clickable above overlays */
+}
+
+/* small utility adjustments used across views */
+.dropdown .dropdown-menu { display: none; position: absolute; z-index: 999; }
+.dropdown.active .dropdown-menu { display: block; }
+
+/* subject thumbnails: make images responsive and avoid stretching;
+   do not force a fixed thumbnail box here so card CSS can control sizing */
+.subject-thumbnail img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+/* ensure subjects grid used by search reuses card spacing from cards.css */
+.subjects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 16px;
+}
+
+/* when a subject-card has no thumbnail, ensure info has padding and alignment */
+.subject-card:not(:has(.subject-thumbnail)) .subject-info {
+    padding: 20px;
+}
+
+/* small responsive tweaks */
+@media (max-width: 768px) {
+    .sidebar { display: none; }
+    body.with-sidebar .content-wrapper { margin-left: 0; }
+}

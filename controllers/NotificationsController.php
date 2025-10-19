@@ -13,10 +13,18 @@ class NotificationsController extends Controller {
             $notificationModel = new NotificationModel();  // Tạo model nếu cần
             $notifications = $notificationModel->getUnreadNotifications($employeeId, 10);  // Lấy 10 unread mới nhất
             
+            // Normalize field names: model returns is_read, frontend expects read
+            $normalized = array_map(function($n) {
+                $n['read'] = isset($n['is_read']) ? (bool)$n['is_read'] : false;
+                unset($n['is_read']);
+                // ensure keys use lowercase as frontend expects
+                return array_change_key_case($n, CASE_LOWER);
+            }, $notifications);
+
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
-                'notifications' => $notifications  // Array: [{'id':1, 'title':'New course assigned', 'message':'...', 'link':'/subjects/1', 'read':false, 'time':'2025-10-15 10:00'}]
+                'notifications' => $normalized
             ]);
             exit;
         } catch (Exception $e) {

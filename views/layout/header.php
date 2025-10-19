@@ -7,11 +7,15 @@
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/animations.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/buttons.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/cards.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/certificates.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/dashboard.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/main.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/modals.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/notifications.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/subject.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app-views.css">
     
     <!-- Progressive Web App support -->
     <link rel="manifest" href="<?= BASE_URL ?>/manifest.json">
@@ -47,7 +51,7 @@
                 
                 <div class="header-actions">
                     <div class="notifications dropdown">
-                        <button class="dropdown-toggle" aria-label="Notifications">
+                        <button type="button" class="dropdown-toggle" aria-label="Notifications">
                             <i class="fas fa-bell"></i>
                             <?php if (($notificationCount ?? 0) > 0): ?>
                                 <span class="badge"><?= $notificationCount ?></span>
@@ -59,7 +63,7 @@
                     </div>
                     
                     <div class="user-menu dropdown">
-                        <button class="dropdown-toggle">
+                        <button type="button" class="dropdown-toggle">
                             <div class="avatar">
                                 <?= !empty($_SESSION['employee_name']) ? strtoupper(substr($_SESSION['employee_name'], 0, 1)) : '?' ?>
                             </div>
@@ -86,16 +90,6 @@
     <?php endif; ?>
 
     <script>
-        // Register Service Worker for PWA support
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('<?= BASE_URL ?>/sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful');
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
-            });
-        }
+        // Expose BASE_URL to client JS
+        window.BASE_URL = '<?= BASE_URL ?>';
     </script>

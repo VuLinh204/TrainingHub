@@ -158,4 +158,18 @@ class SubjectModel extends Model {
     public function findById($id) {
         return $this->find($id);
     }
+
+    /**
+     * Search subjects by keyword (used by site search)
+     */
+    public function searchSubjects($q, $limit = 20) {
+        $sql = "SELECT ID, Title, Description, VideoURL, Duration, FileURL
+                FROM {$this->table}
+                WHERE Status = 1 AND DeletedAt IS NULL
+                AND (Title LIKE ? OR Description LIKE ?)
+                ORDER BY CreatedAt DESC
+                LIMIT ?";
+        $like = '%' . str_replace('%', '\\%', $q) . '%';
+        return $this->query($sql, [$like, $like, (int)$limit]);
+    }
 }

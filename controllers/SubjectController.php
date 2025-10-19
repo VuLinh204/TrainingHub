@@ -79,6 +79,38 @@ class SubjectController extends Controller {
         ]);
     }
 
+    public function search() {
+        // Allow both guests and authenticated users to search
+        $employeeId = null;
+        try {
+            $employeeId = $this->checkAuth();
+        } catch (Exception $e) {
+            // not logged in
+        }
+
+        $q = trim($_GET['q'] ?? '');
+        $results = [];
+        if ($q !== '') {
+            $results = $this->subjectModel->searchSubjects($q, 50);
+        }
+
+        $sidebarData = [];
+        if ($employeeId) {
+            $sidebarData = $this->getSidebarData($employeeId);
+            $employee = $this->employeeModel->findById($employeeId);
+        } else {
+            $employee = null;
+        }
+
+        $this->render('search/index', [
+            'employee' => $employee,
+            'results' => $results,
+            'q' => $q,
+            'sidebarData' => $sidebarData,
+            'pageTitle' => 'Tìm kiếm: ' . ($q ?: '')
+        ]);
+    }
+
     /**
      * Theo dõi tiến độ video (API endpoint)
      */

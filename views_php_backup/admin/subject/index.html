@@ -1,0 +1,843 @@
+<!-- Converted from: views\admin\subject\index.php -->
+<!-- Include: ../_header.html -->
+
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ $pageTitle }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --success: #10b981;
+            --success-light: #34d399;
+            --danger: #ef4444;
+            --danger-light: #f87171;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-900: #111827;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--gray-50);
+            line-height: 1.5;
+            color: var(--gray-900);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--gray-900);
+        }
+
+        .page-title .icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.625rem;
+            transition: all 0.3s;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn i {
+            font-size: 1.125rem;
+        }
+
+        /* Filters Section */
+        .filters {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .filters-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            color: var(--gray-700);
+            font-weight: 600;
+        }
+
+        .filters-header i {
+            color: var(--primary);
+            font-size: 1.25rem;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr auto;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--gray-700);
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .filter-label i {
+            font-size: 0.875rem;
+            color: var(--gray-400);
+        }
+
+        .filter-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            background: var(--gray-50);
+        }
+
+        .filter-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Stats Cards */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.75rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-light);
+        }
+
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            flex-shrink: 0;
+        }
+
+        .stat-card:nth-child(1) .stat-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .stat-card:nth-child(2) .stat-icon {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .stat-card:nth-child(3) .stat-icon {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .stat-card:nth-child(4) .stat-icon {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+        }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            margin-bottom: 0.375rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            line-height: 1;
+        }
+
+        /* Subjects Grid */
+        .subjects-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .subjects-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .subjects-header h2 i {
+            color: var(--primary);
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 0.5rem;
+            background: white;
+            padding: 0.375rem;
+            border-radius: 10px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .view-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--gray-600);
+        }
+
+        .view-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .subjects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Subject Card */
+        .subject-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid transparent;
+        }
+
+        .subject-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--primary-light);
+        }
+
+        .subject-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 1.75rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .subject-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -25%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .subject-header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .subject-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .subject-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 1rem;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .subject-status i {
+            font-size: 0.875rem;
+        }
+
+        .subject-body {
+            padding: 1.75rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .subject-description {
+            font-size: 0.95rem;
+            color: var(--gray-600);
+            margin-bottom: 1.25rem;
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .subject-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+            padding: 1.25rem;
+            background: var(--gray-50);
+            border-radius: 12px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+            margin-bottom: 0.375rem;
+        }
+
+        .stat-name {
+            font-size: 0.75rem;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .subject-meta {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .meta-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.375rem 0.875rem;
+            background: var(--gray-100);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--gray-700);
+            font-weight: 500;
+        }
+
+        .meta-badge i {
+            font-size: 0.875rem;
+            color: var(--primary);
+        }
+
+        .subject-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-sm {
+            flex: 1;
+            padding: 0.75rem 1.25rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-sm i {
+            font-size: 1rem;
+        }
+
+        .btn-sm.edit {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
+        .btn-sm.edit:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-sm.delete {
+            background: linear-gradient(135deg, var(--danger), var(--danger-light));
+            color: white;
+            width: auto;
+            flex: 0;
+            padding: 0.75rem;
+        }
+
+        .btn-sm.delete:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Empty State */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .empty-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 2rem;
+            background: linear-gradient(135deg, var(--gray-100), var(--gray-200));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: var(--gray-400);
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state p {
+            color: var(--gray-600);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+        }
+
+        .alert i {
+            font-size: 1.25rem;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid var(--success);
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid var(--danger);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .subjects-grid {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 1.5rem;
+            }
+
+            .page-title {
+                font-size: 1.5rem;
+            }
+
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .subjects-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .subjects-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+
+            .view-toggle {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .subject-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Alerts -->
+        
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                <span>{{ htmlspecialchars($_SESSION['success']) }}</span>
+            </div>
+            
+        
+
+        
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{{ htmlspecialchars($_SESSION['error']) }}</span>
+            </div>
+            
+        
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title">
+                <div class="icon">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <span>{{ $pageTitle }}</span>
+            </div>
+            <a href="{{ BASE_URL }}/admin/subjects/create" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i>
+                <span>Tạo khóa học mới</span>
+            </a>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filters-header">
+                <i class="fas fa-filter"></i>
+                <span>Bộ lọc</span>
+            </div>
+            <form method="GET" action="{{ BASE_URL }}/admin/subjects">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-search"></i>
+                            <span>Tìm kiếm</span>
+                        </label>
+                        <input type="text" 
+                               name="search"
+                               class="filter-control" 
+                               placeholder="Nhập tên hoặc mô tả khóa học..." 
+                               value="{{ htmlspecialchars($searchQuery ?? '') }}">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-toggle-on"></i>
+                            <span>Trạng thái</span>
+                        </label>
+                        <select name="status" class="filter-control">
+                            <option value="all" {{ ($currentStatus ?? 'all') == 'all' ? 'selected' : '' }}>Tất cả</option>
+                            <option value="active" {{ ($currentStatus ?? 'all') == 'active' ? 'selected' : '' }}>Hoạt động</option>
+                            <option value="inactive" {{ ($currentStatus ?? 'all') == 'inactive' ? 'selected' : '' }}>Vô hiệu hóa</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        <span>Tìm kiếm</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Tổng khóa học</div>
+                    <div class="stat-value">{{ $stats['total'] ?? 0 }}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Đang hoạt động</div>
+                    <div class="stat-value">{{ $stats['active'] ?? 0 }}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Tổng học viên</div>
+                    <div class="stat-value">{{ $stats['total_learners'] ?? 0 }}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Điểm trung bình</div>
+                    <div class="stat-value">{{ round($stats['avg_score'] ?? 0) }}%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subjects Header -->
+        <div class="subjects-header">
+            <h2>
+                <i class="fas fa-layer-group"></i>
+                Danh sách khóa học
+            </h2>
+        </div>
+
+        <!-- Subjects Grid -->
+        <div class="subjects-grid">
+            
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-inbox"></i>
+                    </div>
+                    <h3>Chưa có khóa học nào</h3>
+                    <p>Bắt đầu bằng cách tạo khóa học đầu tiên của bạn</p>
+                    <a href="{{ BASE_URL }}/admin/subjects/create" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Tạo khóa học ngay</span>
+                    </a>
+                </div>
+            
+                
+                    <div class="subject-card">
+                        <div class="subject-header">
+                            <div class="subject-header-content">
+                                <h3 class="subject-title">{{ htmlspecialchars($subject['Title']) }}</h3>
+                                <span class="subject-status">
+                                    <i class="fas fa-{{ $subject['Status'] == 1 ? 'check-circle' : 'pause-circle' }}"></i>
+                                    <span>{{ $subject['Status'] == 1 ? 'Hoạt động' : 'Vô hiệu hóa' }}</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="subject-body">
+                            <p class="subject-description">
+                                {{ !empty($subject['Description']) ? htmlspecialchars(substr($subject['Description'], 0, 150)) . '...' : 'Chưa có mô tả' }}
+                            </p>
+                            
+                            <div class="subject-stats">
+                                <div class="stat-item">
+                                    <div class="stat-number">
+                                        <i class="fas fa-users" style="font-size: 1rem; margin-right: 0.25rem;"></i>
+                                        {{ $subject['learner_count'] ?? 0 }}
+                                    </div>
+                                    <div class="stat-name">Học viên</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number">
+                                        <i class="fas fa-clock" style="font-size: 1rem; margin-right: 0.25rem;"></i>
+                                        {{ $subject['Duration'] ?? 0 }}
+                                    </div>
+                                    <div class="stat-name">Phút</div>
+                                </div>
+                            </div>
+
+                            <div class="subject-meta">
+                                <span class="meta-badge">
+                                    <i class="fas fa-certificate"></i>
+                                    <span>{{ $subject['cert_count'] ?? 0 }} chứng chỉ</span>
+                                </span>
+                                
+                                <span class="meta-badge">
+                                    <i class="fas fa-chart-line"></i>
+                                    <span>{{ round($subject['avg_score']) }}% TB</span>
+                                </span>
+                                
+                            </div>
+
+                            <div class="subject-actions">
+                                <a href="{{ BASE_URL }}/admin/subjects/{{ $subject['ID'] }}/edit" class="btn-sm edit">
+                                    <i class="fas fa-edit"></i>
+                                    <span>Chỉnh sửa</span>
+                                </a>
+                                <form method="POST" action="{{ BASE_URL }}/admin/subjects/{{ $subject['ID'] }}/delete" style="display: inline;">
+                                    <button type="submit" 
+                                            class="btn-sm delete" 
+                                            onclick="return confirm('Bạn có chắc chắn muốn xóa khóa học này?\n\nLưu ý: Nếu có dữ liệu liên quan, khóa học sẽ chỉ bị vô hiệu hóa.')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                
+            
+        </div>
+    </div>
+
+    <script>
+        // Auto-hide alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-10px)';
+                    setTimeout(() => alert.remove(), 300);
+                }, 5000);
+            });
+        });
+    </script>
+</body>
+</html>
+<!-- Include: ../_footer.html -->

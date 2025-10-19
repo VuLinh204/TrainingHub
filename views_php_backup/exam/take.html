@@ -1,0 +1,696 @@
+<!-- Converted from: views\exam\take.php -->
+<!-- Include: ../_header.html -->
+
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài kiểm tra: {{ htmlspecialchars($subjectName) }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .exam-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .exam-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .exam-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .exam-header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .timer-container {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: inline-block;
+        }
+
+        .timer {
+            font-size: 32px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timer.warning {
+            color: #ffd700;
+            animation: pulse 1s infinite;
+        }
+
+        .timer.danger {
+            color: #ff4444;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .exam-body {
+            padding: 40px;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .question-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .question-nav-btn {
+            width: 45px;
+            height: 45px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .question-nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .question-nav-btn.answered {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .question-nav-btn.active {
+            background: #764ba2;
+            color: white;
+            border-color: #764ba2;
+            transform: scale(1.1);
+        }
+
+        .question-card {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .question-card.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .question-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+
+        .question-number {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .question-text {
+            font-size: 20px;
+            font-weight: 600;
+            line-height: 1.6;
+        }
+
+        .answer-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .answer-option {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .answer-option:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .answer-option input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .answer-option label {
+            flex: 1;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .answer-option.selected {
+            background: #e7e9fc;
+            border-color: #667eea;
+        }
+
+        .exam-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal-content p {
+            margin-bottom: 30px;
+            color: #6c757d;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="exam-container">
+        <div class="exam-header">
+            <h1>Bài kiểm tra: {{ htmlspecialchars($subjectName) }}</h1>
+            <p>Thời gian: {{ $timeLimit }} phút | Số câu hỏi: {{ $questionCount }}</p>
+            <div class="timer-container">
+                <span class="timer" id="timer">--:--</span>
+            </div>
+        </div>
+        <div class="exam-body">
+            <div id="loading" class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Đang tải câu hỏi...</p>
+            </div>
+            <div id="examContent" style="display: none;">
+                <div class="question-nav" id="questionNav"></div>
+                <div id="questionsContainer"></div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+                </div>
+                <div class="progress-text" id="progressText">0/0 câu đã trả lời</div>
+                <div class="exam-navigation">
+                    <button class="btn btn-secondary" id="prevBtn" disabled>
+                        <i class="fas fa-arrow-left"></i> Câu trước
+                    </button>
+                    <button class="btn btn-primary" id="nextBtn">
+                        <i class="fas fa-arrow-right"></i> Câu tiếp
+                    </button>
+                    <button class="btn btn-success" id="submitBtn" style="display: none;" onclick="confirmSubmit()">
+                        <i class="fas fa-check"></i> Nộp bài
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="submitModal">
+        <div class="modal-content">
+            <h3>Xác nhận nộp bài</h3>
+            <p>Bạn đã trả lời <span id="answeredCount">0</span>/<span id="totalCount">0</span> câu hỏi. Bạn có chắc muốn nộp bài?</p>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeSubmitModal()">Hủy</button>
+                <button class="btn btn-success" onclick="submitExam()">Nộp bài</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const subjectId = ;
+        const baseUrl = ;
+        const examData = {
+            examId: null,
+            questions: [],
+            answers: {},
+            currentQuestion: 0,
+            timeRemaining: ,
+            timerInterval: null
+        };
+
+        // Initialize
+        window.onload = function() {
+            startExam();
+        };
+
+        // Show error
+        function showError(message) {
+            const container = document.getElementById('examContent');
+            container.style.display = 'none';
+            document.getElementById('loading').innerHTML = `
+                <div class="alert alert-danger">${message}</div>
+            `;
+        }
+
+        // Start exam
+        async function startExam() {
+            try {
+                // Reset examId
+                examData.examId = null;
+                const response = await fetch(`${baseUrl}/exam/${subjectId}/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Không thể bắt đầu bài thi');
+                }
+
+                examData.examId = data.exam_id;
+                examData.questions = data.questions;
+                examData.timeRemaining = data.time_limit * 60;
+
+                // Hide loading
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('examContent').style.display = 'block';
+
+                // Render questions
+                renderQuestions();
+
+                // Show first question
+                showQuestion(0);
+
+                // Start timer
+                startTimer();
+
+            } catch (error) {
+                console.error('Start exam error:', error);
+                showError(error.message);
+            }
+        }
+
+        // Render questions
+        function renderQuestions() {
+            const container = document.getElementById('questionsContainer');
+            const nav = document.getElementById('questionNav');
+
+            // Create navigation buttons
+            examData.questions.forEach((_, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'question-nav-btn';
+                btn.id = `nav-btn-${index}`;
+                btn.textContent = index + 1;
+                btn.onclick = () => showQuestion(index);
+                nav.appendChild(btn);
+            });
+
+            // Create question cards
+            examData.questions.forEach((question, qIndex) => {
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                card.id = `question-${qIndex}`;
+
+                // Create answer options
+                let answersHTML = '';
+                question.answers.forEach((answer, aIndex) => {
+                    answersHTML += `
+                        <div class="answer-option">
+                            <input type="radio" 
+                                   name="question-${qIndex}" 
+                                   id="answer-${qIndex}-${aIndex}" 
+                                   value="${answer.id}" 
+                                   onchange="selectAnswer(${qIndex}, ${answer.id})">
+                            <label for="answer-${qIndex}-${aIndex}">${answer.text}</label>
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="question-header">
+                        <div class="question-number">Câu hỏi ${qIndex + 1}/${examData.questions.length}</div>
+                        <div class="question-text">${question.QuestionText}</div>
+                    </div>
+                    <div class="answer-options">
+                        ${answersHTML}
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Show specific question
+        function showQuestion(index) {
+            document.querySelectorAll('.question-card').forEach(card => {
+                card.classList.remove('active');
+            });
+
+            document.getElementById(`question-${index}`).classList.add('active');
+
+            document.querySelectorAll('.question-nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`nav-btn-${index}`).classList.add('active');
+
+            examData.currentQuestion = index;
+            updateNavigationButtons();
+
+            if (examData.answers[index]) {
+                const answerId = examData.answers[index];
+                const radio = document.querySelector(`input[name="question-${index}"][value="${answerId}"]`);
+                if (radio) {
+                    radio.checked = true;
+                    radio.closest('.answer-option').classList.add('selected');
+                }
+            }
+        }
+
+        // Select answer
+        function selectAnswer(questionIndex, answerId) {
+            examData.answers[questionIndex] = answerId;
+
+            const radio = document.querySelector(`input[name="question-${questionIndex}"][value="${answerId}"]`);
+            if (radio) {
+                radio.checked = true;
+            }
+
+            document.querySelectorAll(`#question-${questionIndex} .answer-option`).forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            radio.closest('.answer-option').classList.add('selected');
+
+            document.getElementById(`nav-btn-${questionIndex}`).classList.add('answered');
+            updateProgress();
+        }
+
+        // Update progress bar
+        function updateProgress() {
+            const answered = Object.keys(examData.answers).length;
+            const total = examData.questions.length;
+            const percentage = (answered / total) * 100;
+
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+            document.getElementById('progressText').textContent = `${answered}/${total} câu đã trả lời`;
+        }
+
+        // Navigation functions
+        function previousQuestion() {
+            if (examData.currentQuestion > 0) {
+                showQuestion(examData.currentQuestion - 1);
+            }
+        }
+
+        function nextQuestion() {
+            if (examData.currentQuestion < examData.questions.length - 1) {
+                showQuestion(examData.currentQuestion + 1);
+            }
+        }
+
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const submitBtn = document.getElementById('submitBtn');
+
+            prevBtn.disabled = examData.currentQuestion === 0;
+
+            if (examData.currentQuestion === examData.questions.length - 1) {
+                nextBtn.style.display = 'none';
+                submitBtn.style.display = 'inline-flex';
+            } else {
+                nextBtn.style.display = 'inline-flex';
+                submitBtn.style.display = 'none';
+            }
+        }
+
+        // Timer
+        function startTimer() {
+            updateTimerDisplay();
+
+            examData.timerInterval = setInterval(() => {
+                examData.timeRemaining--;
+                updateTimerDisplay();
+
+                if (examData.timeRemaining <= 0) {
+                    clearInterval(examData.timerInterval);
+                    alert('Hết giờ làm bài! Bài thi sẽ được tự động nộp.');
+                    submitExam();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(examData.timeRemaining / 60);
+            const seconds = examData.timeRemaining % 60;
+            const display = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            const timerEl = document.getElementById('timer');
+            timerEl.textContent = display;
+
+            timerEl.classList.remove('warning', 'danger');
+            if (examData.timeRemaining <= 60) {
+                timerEl.classList.add('danger');
+            } else if (examData.timeRemaining <= 300) {
+                timerEl.classList.add('warning');
+            }
+        }
+
+        // Submit confirmation
+        function confirmSubmit() {
+            const answered = Object.keys(examData.answers).length;
+            const total = examData.questions.length;
+
+            document.getElementById('answeredCount').textContent = answered;
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('submitModal').classList.add('active');
+        }
+
+        function closeSubmitModal() {
+            document.getElementById('submitModal').classList.remove('active');
+        }
+
+        // Submit exam
+        async function submitExam() {
+            closeSubmitModal();
+            clearInterval(examData.timerInterval);
+
+            const answersArray = [];
+            for (let questionIndex in examData.answers) {
+                const question = examData.questions[questionIndex];
+                answersArray.push({
+                    question_id: question.ID,
+                    answer_id: examData.answers[questionIndex]
+                });
+            }
+
+            try {
+                console.log('Submitting exam with payload:', {
+                    exam_id: examData.examId,
+                    answers: answersArray
+                });
+
+                const response = await fetch(`${baseUrl}/exam/${subjectId}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        exam_id: examData.examId,
+                        answers: answersArray
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || 'Không thể nộp bài');
+                }
+
+                window.location.href = `${baseUrl}/exam/${result.exam_id}/results`;
+
+            } catch (error) {
+                console.error('Submit error:', error);
+                alert(`Lỗi khi nộp bài: ${error.message}. Vui lòng thử lại.`);
+                startTimer();
+            }
+        }
+
+        window.addEventListener('beforeunload', function(e) {
+            if (examData.examId && examData.timerInterval) {
+                e.preventDefault();
+                e.returnValue = 'Bài thi của bạn chưa được nộp. Bạn có chắc muốn rời khỏi trang?';
+                return e.returnValue;
+            }
+        });
+    </script>
+</body>
+</html>
+<!-- Include: ../_footer.html -->

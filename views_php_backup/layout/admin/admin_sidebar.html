@@ -1,0 +1,375 @@
+<!-- Converted from: views\layout\admin\admin_sidebar.php -->
+<!-- Include: ../_header.html -->
+<style>
+    :root {
+        --sidebar-width: 280px;
+        --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-600: #4b5563;
+        --gray-800: #1f2937;
+        --gray-900: #111827;
+    }
+
+    .admin-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: var(--sidebar-width);
+        background: white;
+        border-right: 1px solid var(--gray-200);
+        overflow-y: auto;
+        z-index: 1000;
+        transition: transform 0.3s ease;
+    }
+
+    .sidebar-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+    }
+
+    .sidebar-brand {
+        font-size: 1.25rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        text-decoration: none;
+        color: white;
+    }
+
+    .sidebar-brand i {
+        font-size: 1.5rem;
+    }
+
+    .admin-info {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+        background: var(--gray-50);
+    }
+
+    .admin-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), #8b5cf6);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+    }
+
+    .admin-name {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+        color: var(--gray-900);
+    }
+
+    .admin-role {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+    }
+
+    .sidebar-nav {
+        padding: 1rem 0;
+    }
+
+    .nav-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .nav-section-title {
+        padding: 0.5rem 1.5rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--gray-600);
+    }
+
+    .nav-menu {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .nav-item {
+        margin: 0.25rem 0.75rem;
+    }
+
+    .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        color: var(--gray-600);
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.2s;
+        position: relative;
+    }
+
+    .nav-link:hover {
+        background: var(--gray-100);
+        color: var(--gray-900);
+    }
+
+    .nav-link.active {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+    }
+
+    .nav-link i {
+        width: 20px;
+        text-align: center;
+        font-size: 1.125rem;
+    }
+
+    .nav-badge {
+        margin-left: auto;
+        background: var(--primary);
+        color: white;
+        padding: 0.125rem 0.5rem;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .nav-link.active .nav-badge {
+        background: white;
+        color: var(--primary);
+    }
+
+    .sidebar-stats {
+        padding: 1rem 1.5rem;
+        background: var(--gray-50);
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .stat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        font-size: 0.875rem;
+    }
+
+    .stat-label {
+        color: var(--gray-600);
+    }
+
+    .stat-value {
+        font-weight: 700;
+        color: var(--gray-900);
+    }
+
+    .main-content {
+        min-height: 100vh;
+        background: var(--gray-50);
+    }
+
+    .mobile-menu-btn {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 1001;
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        padding: 0.75rem;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 768px) {
+        .admin-sidebar {
+            transform: translateX(-100%);
+        }
+
+        .admin-sidebar.mobile-open {
+            transform: translateX(0);
+        }
+
+        .main-content {
+            margin-left: 0;
+        }
+
+        .mobile-menu-btn {
+            display: block;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+    }
+</style>
+
+<button class="mobile-menu-btn" onclick="toggleSidebar()">
+    <i class="fas fa-bars"></i>
+</button>
+
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<aside class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-header">
+        <a href="{{ BASE_URL }}/admin/dashboard" class="sidebar-brand">
+            <i class="fas fa-graduation-cap"></i>
+            <span>Admin Panel</span>
+        </a>
+    </div>
+
+    <div class="admin-info">
+        <div class="admin-avatar">
+            {{ strtoupper(substr($employee['FirstName'] ?? 'A', 0, 1)) }}
+        </div>
+        <div class="admin-name">{{ htmlspecialchars($employee['FirstName'] ?? '') }} {{ htmlspecialchars($employee['LastName'] ?? '') }}</div>
+        <div class="admin-role">{{ htmlspecialchars($sidebarData['position'] ?? 'Admin') }}</div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section">
+            <div class="nav-section-title">Tổng quan</div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="{{ BASE_URL }}/admin/dashboard" class="nav-link {{ $pageTitle === 'Trang quản trị' ? 'active' : '' }}">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ BASE_URL }}/admin/reports" class="nav-link {{ $pageTitle === 'Báo cáo tổng hợp' ? 'active' : '' }}">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Báo cáo</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Quản lý chứng chỉ</div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="{{ BASE_URL }}/admin/certificates" class="nav-link {{ $pageTitle === 'Quản lý chứng chỉ' ? 'active' : '' }}">
+                        <i class="fas fa-certificate"></i>
+                        <span>Tất cả chứng chỉ</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ BASE_URL }}/admin/certificates/pending" class="nav-link {{ $pageTitle === 'Chứng chỉ chờ duyệt' ? 'active' : '' }}">
+                        <i class="fas fa-clock"></i>
+                        <span>Chờ duyệt</span>
+                        
+                        <span class="nav-badge">{{ $sidebarData['stats']['pending_count'] }}</span>
+                        
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ BASE_URL }}/admin/certificates/statistics" class="nav-link {{ $pageTitle === 'Thống kê chứng chỉ' ? 'active' : '' }}">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Thống kê</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Quản lý đào tạo</div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="{{ BASE_URL }}/admin/employees" class="nav-link {{ $pageTitle === 'Quản lý nhân viên' ? 'active' : '' }}">
+                        <i class="fas fa-users"></i>
+                        <span>Nhân viên</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ BASE_URL }}/admin/subjects" class="nav-link {{ $pageTitle === 'Quản lý khóa học' ? 'active' : '' }}">
+                        <i class="fas fa-book"></i>
+                        <span>Khóa học</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ BASE_URL }}/admin/assignments" class="nav-link {{ $pageTitle === 'Quản lý phân công' ? 'active' : '' }}">
+                        <i class="fas fa-tasks"></i>
+                        <span>Phân công</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Hệ thống</div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="{{ BASE_URL }}/admin/settings" class="nav-link {{ $pageTitle === 'Cài đặt hệ thống' ? 'active' : '' }}">
+                        <i class="fas fa-user-cog"></i>
+                        <span>Cài đặt</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ BASE_URL }}/logout" class="nav-link">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Đăng xuất</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    
+    <div class="sidebar-stats">
+        <div class="stat-item">
+            <span class="stat-label">Nhân viên</span>
+            <span class="stat-value">{{ $sidebarData['stats']['total_employees'] ?? 0 }}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Khóa học</span>
+            <span class="stat-value">{{ $sidebarData['stats']['total_subjects'] ?? 0 }}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Chứng chỉ</span>
+            <span class="stat-value">{{ $sidebarData['stats']['approved_count'] ?? 0 }}</span>
+        </div>
+    </div>
+    
+</aside>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('adminSidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        
+        sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('active');
+    }
+
+    // Close sidebar when clicking on a link on mobile
+    if (window.innerWidth <= 768) {
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                toggleSidebar();
+            });
+        });
+    }
+</script>
+<!-- Include: ../_footer.html -->

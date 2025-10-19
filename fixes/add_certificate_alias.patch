@@ -1,0 +1,13 @@
+*** Begin Patch
+*** Update File: /c/Users/placeholder/CertificateModel.php
+@@
+     public function getCertificateHistory($employeeId) {
+@@
+         return $this->query($sql, [$employeeId]);
+     }
+@@
+     public function getEmployeeCertificates($employeeId) {
+-        return $this->getCertificateHistory($employeeId);
++        return $this->getCertificateHistory($employeeId);
+     }
+*** End Patch

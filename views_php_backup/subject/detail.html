@@ -1,0 +1,272 @@
+<!-- Converted from: views\subject\detail.php -->
+<!-- Include: ../_header.html -->
+
+
+<div class="subject-detail">
+    <div class="subject-header-modern">
+        <h1>{{ htmlspecialchars($subject['Title'] ?? 'Khóa học') }}</h1>
+        <div class="subject-meta">
+            <div class="meta-item"><i class="fas fa-clock"></i> {{ floor($duration / 60) }} phút : {{ str_pad($duration % 60, 2, '0', STR_PAD_LEFT) }} giây</div>
+            <div class="meta-item"><i class="fas fa-percentage"></i> Tiến độ: {{ $progressPercent }}%</div>
+        </div>
+    </div>
+
+    <div class="container">
+        
+            <div class="video-container">
+                <div class="video-wrapper">
+                    <video id="lessonVideo" class="lesson-video" controls controlsList="nodownload" preload="metadata">
+                        <source src="{{ htmlspecialchars($subject['VideoURL']) }}" type="video/mp4">
+                        Trình duyệt không hỗ trợ video.
+                    </video>
+                </div>
+                <div class="video-info">
+                    <div class="progress-bar">
+                        <div class="progress" style="width: {{ $progressPercent }}%;"></div>
+                    </div>
+                </div>
+            </div>
+        
+
+        <!-- Tabs -->
+        <div class="content-tabs">
+            <div class="tab-header">
+                <button class="tab-btn active" data-tab="description">Mô tả</button>
+                <button class="tab-btn" data-tab="exam">Bài kiểm tra</button>
+            </div>
+
+            <!-- Tab: Mô tả -->
+            <div class="tab-pane active" id="description">
+                
+                    <div class="description-content">
+                        {{ nl2br(htmlspecialchars($subject['Description'])) }}
+                    </div>
+                
+                    <p>Không có mô tả.</p>
+                
+            </div>
+
+            <!-- Tab: Bài kiểm tra (Giữ logic gốc) -->
+            <div class="tab-pane" id="exam" style="text-align:center;">
+                
+                    <button class="btn btn-primary take-exam-btn {{ $canTakeExam ? '' : 'disabled' }}"
+                            data-subject-id="{{ $subject['ID'] }}"
+                            {{ $canTakeExam ? '' : 'disabled' }}>
+                        <i class="fas {{ $canTakeExam ? 'fa-clipboard-list' : 'fa-lock' }}"></i>
+                        {{ $canTakeExam ? 'Làm bài kiểm tra' : 'Xem video để mở khóa' }}
+                    </button>
+                
+                    <button class="btn btn-success complete-btn {{ $canTakeExam ? '' : 'disabled' }}"
+                            data-subject-id="{{ $subject['ID'] }}"
+                            {{ $canTakeExam ? '' : 'disabled' }}>
+                        <i class="fas fa-check-circle"></i>
+                        {{ $canTakeExam ? 'Đánh dấu hoàn thành' : 'Xem video để hoàn thành' }}
+                    </button>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- STYLE -->
+<style>
+/* === GLOBAL COLOR PALETTE === */
+:root {
+    --color-primary: #007bff;
+    --color-secondary: #00bfff;
+    --color-success: #28a745;
+    --color-text: #222;
+    --color-text-light: #666;
+    --color-bg: #ffffff;
+    --color-shadow: rgba(0, 0, 0, 0.05);
+}
+
+/* === CONTAINER === */
+.subject-detail {
+    border-radius: 0 0 16px 16px;
+    overflow: hidden;
+}
+
+.video-info {
+    padding: 10px;
+}
+
+/* === HEADER === */
+.subject-header-modern {
+    background: linear-gradient(90deg, #007bff, #00bfff);
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.subject-header-modern h1 {
+    font-size: 1.9rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+.subject-header-modern .subject-meta {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+.subject-header-modern .meta-item {
+    gap: 0;
+    color: #fff;
+}
+
+.subject-header-modern .meta-item i {
+    margin-right: 6px;
+}
+
+.subject-meta {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    font-size: 0.95rem;
+}
+.subject-meta i {
+    margin-right: 6px;
+}
+
+/* === VIDEO SECTION === */
+.video-container {
+    margin: 25px auto 0;
+}
+.video-wrapper {
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+.lesson-video {
+    width: 100%;
+    display: block;
+}
+.progress-bar {
+    background: #eee;
+    border-radius: 10px;
+    height: 6px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+.progress {
+    height: 6px;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+}
+
+/* === TABS === */
+.content-tabs {
+    text-align: center;
+}
+.tab-header {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    border-bottom: 2px solid #f0f0f0;
+}
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 12px 25px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    color: var(--color-text-light);
+    position: relative;
+    transition: color 0.3s;
+}
+.tab-btn.active {
+    color: var(--color-primary);
+}
+.tab-btn.active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+    border-radius: 2px;
+}
+.tab-pane {
+    display: none;
+    padding: 0;
+}
+.tab-pane.active {
+    display: block;
+}
+
+/* === DESCRIPTION === */
+.description-content {
+    color: var(--color-text);
+    font-size: 1rem;
+    line-height: 1.6;
+    text-align: justify;
+}
+
+/* === BUTTONS === */
+.btn {
+    margin-top: 20px;
+    padding: 12px 30px;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+.btn-primary {
+    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+    border: none;
+}
+.btn-success {
+    background: linear-gradient(90deg, var(--color-success), #20c997);
+    border: none;
+}
+.btn:disabled,
+.btn.disabled {
+    margin: 0;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.btn:hover:not(:disabled) {
+    transform: scale(1.03);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+</style>
+
+<!-- SCRIPT -->
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn, .tab-pane').forEach(el => el.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+});
+
+// Gửi tiến độ xem video
+const video = document.getElementById('lessonVideo');
+if (video) {
+    let lastSent = 0;
+    video.addEventListener('timeupdate', () => {
+        const now = Math.floor(video.currentTime);
+        if (now - lastSent < 5) return;
+        lastSent = now;
+        fetch('{{ $baseUrl }}/subject/track', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                lesson_id: {{ (int)$subject['ID'] }},
+                watched_seconds: now,
+                event: 'timeupdate'
+            })
+        }).catch(() => {});
+    });
+}
+</script>
+
+<!-- Include: ../_footer.html -->

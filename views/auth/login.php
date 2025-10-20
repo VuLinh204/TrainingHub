@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Training Platform</title>
+    <link rel="stylesheet" href="<?php echo $baseUrl; ?>/assets/css/style.css">
+    <style>
+        .login-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2a73dd 0%, #1b62cc 100%);
+        }
+        
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            margin-left: calc(50% - 200px);
+            margin-top: calc(50vh - 250px);
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-header h1 {
+            margin: 0;
+            color: #333;
+            font-size: 24px;
+        }
+        
+        .login-form .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .login-form label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        
+        .login-form input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #eee;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+        
+        .login-form input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+        
+        .login-form button {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .login-form button:hover {
+            background: #1b62cc;
+        }
+        
+        .error-message {
+            color: var(--danger-color);
+            background: #fff5f5;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Training Platform</h1>
+            <p>Đăng nhập để bắt đầu học</p>
+        </div>
+        
+        <?php if (isset($error)): ?>
+            <div class="error-message">
+                <?= htmlspecialchars($error) ?>
+            </div>
+        <?php endif; ?>
+        
+        <form class="login-form" method="POST" action="<?php echo $baseUrl; ?>/login">
+            <div class="form-group">
+                <label for="email">Email công ty</label>
+                <input type="email" id="email" name="email" required 
+                       placeholder="your.name@company.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Mật khẩu</label>
+                <input type="password" id="password" name="password" required
+                       placeholder="Nhập mật khẩu">
+            </div>
+            
+            <button type="submit">Đăng nhập</button>
+        </form>
+    </div>
+</body>
+</html>

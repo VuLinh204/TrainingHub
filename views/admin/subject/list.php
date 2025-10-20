@@ -1,0 +1,302 @@
+<?php
+// views/subject/list.php - IMPROVED VERSION
+include __DIR__ . '/../layout/header.php';
+include __DIR__ . '/../layout/sidebar.php';
+
+if (empty($subjects)) {
+    echo '<div class="empty-state-container">
+            <div class="empty-icon"><i class="fas fa-inbox"></i></div>
+            <h3>Chưa có khóa học nào</h3>
+            <p>Bạn chưa được phân công khóa học nào. Vui lòng liên hệ quản trị viên.</p>
+          </div>';
+    include __DIR__ . '/../layout/footer.php';
+    return;
+}
+?>
+
+<style>
+:root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-600: #4b5563;
+    --gray-900: #111827;
+}
+
+.subjects-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.page-header {
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 0.5rem;
+}
+
+.page-subtitle {
+    color: var(--gray-600);
+    font-size: 1rem;
+}
+
+.subjects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+.subject-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.subject-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.subject-thumbnail {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 */
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    overflow: hidden;
+}
+
+.subject-thumbnail img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.subject-thumbnail .duration {
+    position: absolute;
+    bottom: 0.75rem;
+    right: 0.75rem;
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.subject-thumbnail .duration i {
+    font-size: 0.875rem;
+}
+
+.subject-info {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.subject-info h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    width: fit-content;
+}
+
+.status i {
+    font-size: 1rem;
+}
+
+.status.completed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status.in-progress {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status.pending {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.expire-date {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.expire-date i {
+    color: var(--warning);
+}
+
+.subject-info .btn-primary {
+    margin-top: auto;
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.subject-info .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+}
+
+.subject-info .btn-primary i {
+    font-size: 1.125rem;
+}
+
+.empty-state-container {
+    max-width: 500px;
+    margin: 4rem auto;
+    text-align: center;
+    padding: 3rem 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.empty-icon {
+    font-size: 5rem;
+    color: var(--gray-200);
+    margin-bottom: 1.5rem;
+}
+
+.empty-state-container h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 0.75rem;
+}
+
+.empty-state-container p {
+    color: var(--gray-600);
+    line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+    .subjects-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+}
+</style>
+
+<div class="subjects-container">
+    <div class="page-header">
+        <h1>Khóa học của bạn</h1>
+        <p class="page-subtitle">Hoàn thành các khóa học để nhận chứng chỉ</p>
+    </div>
+
+    <div class="subjects-grid">
+        <?php foreach ($subjects as $subject): ?>
+            <div class="subject-card">
+                <?php if (!empty($subject['VideoURL'])): ?>
+                    <div class="subject-thumbnail">
+                        <img src="<?= htmlspecialchars(str_replace('.mp4', '.jpg', $subject['VideoURL'])) ?>" 
+                             alt="<?= htmlspecialchars($subject['Name'] ?? $subject['Title']) ?>"
+                             onerror="this.style.display='none'">
+                        <span class="duration">
+                            <i class="fas fa-clock"></i>
+                            <?= floor($subject['Duration'] / 60) ?>:<?= str_pad($subject['Duration'] % 60, 2, '0', STR_PAD_LEFT) ?>
+                        </span>
+                    </div>
+                <?php endif; ?>
+
+                <div class="subject-info">
+                    <h3><?= htmlspecialchars($subject['Name'] ?? $subject['Title']) ?></h3>
+
+                    <?php if ($subject['has_certificate']): ?>
+                        <div class="status completed">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Đã hoàn thành</span>
+                        </div>
+                    <?php elseif ($subject['is_completed']): ?>
+                        <div class="status in-progress">
+                            <i class="fas fa-certificate"></i>
+                            <span>Chờ nhận chứng chỉ</span>
+                        </div>
+                    <?php else: ?>
+                        <div class="status pending">
+                            <i class="fas fa-clock"></i>
+                            <span>Chưa học</span>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($subject['ExpireDate'])): ?>
+                        <div class="expire-date">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Hết hạn: <?= date('d/m/Y', strtotime($subject['ExpireDate'])) ?></span>
+                        </div>
+                    <?php endif; ?>
+
+                    <a href="<?= BASE_URL ?>/subject/<?= (int)$subject['ID'] ?>" class="btn-primary">
+                        <?php if ($subject['has_certificate']): ?>
+                            <i class="fas fa-eye"></i>
+                            <span>Xem lại</span>
+                        <?php elseif ($subject['is_completed']): ?>
+                            <i class="fas fa-clipboard-check"></i>
+                            <span>Làm bài kiểm tra</span>
+                        <?php else: ?>
+                            <i class="fas fa-play"></i>
+                            <span>Bắt đầu học</span>
+                        <?php endif; ?>
+                    </a>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+
+<?php include __DIR__ . '/../layout/footer.php'; ?>
